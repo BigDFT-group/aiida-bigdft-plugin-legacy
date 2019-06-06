@@ -3,9 +3,9 @@
 Helper functions for setting up 
 
  1. An AiiDA localhost computer
- 2. A "diff" code on localhost
+ 2. A "bigdft" code on localhost
  
-Note: Point 2 is made possible by the fact that the ``diff`` executable is
+Note: Point 2 is made possible by the fact that the ``bigdft`` executable is
 available in the PATH on almost any UNIX system.
 """
 from __future__ import absolute_import
@@ -15,7 +15,7 @@ import tempfile
 LOCALHOST_NAME = 'localhost-test'
 
 executables = {
-    'bigdft': 'diff',
+    'bigdft': 'bigdft',
 }
 
 
@@ -61,7 +61,7 @@ def get_computer(name=LOCALHOST_NAME, workdir=None):
 
         computer = Computer(
             name=name,
-            description='localhost computer set up by aiida_diff tests',
+            description='localhost computer set up by aiida_bigdft tests',
             hostname=name,
             workdir=workdir,
             transport_type='local',

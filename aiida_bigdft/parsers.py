@@ -10,10 +10,10 @@ from aiida.engine import ExitCode
 from aiida.parsers.parser import Parser
 from aiida.plugins import CalculationFactory
 
-DiffCalculation = CalculationFactory('bigdft')
+BigDFTCalculation = CalculationFactory('bigdft')
 
 
-class DiffParser(Parser):
+class BigDFTParser(Parser):
     """
     Parser class for parsing output of calculation.
     """
@@ -22,15 +22,15 @@ class DiffParser(Parser):
         """
         Initialize Parser instance
 
-        Checks that the ProcessNode being passed was produced by a DiffCalculation.
+        Checks that the ProcessNode being passed was produced by a BigDFTCalculation.
 
         :param node: ProcessNode of calculation
         :param type node: :class:`aiida.orm.ProcessNode`
         """
         from aiida.common import exceptions
-        super(DiffParser, self).__init__(node)
-        if not issubclass(node.process_class, DiffCalculation):
-            raise exceptions.ParsingError("Can only parse DiffCalculation")
+        super(BigDFTParser, self).__init__(node)
+        if not issubclass(node.process_class, BigDFTCalculation):
+            raise exceptions.ParsingError("Can only parse BigDFTCalculation")
 
     def parse(self, **kwargs):
         """

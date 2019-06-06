@@ -15,8 +15,8 @@ computer = helpers.get_computer()
 code = helpers.get_code(entry_point='bigdft', computer=computer)
 
 # Prepare input parameters
-DiffParameters = DataFactory('bigdft')
-parameters = DiffParameters({'ignore-case': True})
+BigDFTParameters = DataFactory('bigdft')
+parameters = BigDFTParameters({'ignore-case': True})
 
 SinglefileData = DataFactory('singlefile')
 file1 = SinglefileData(
@@ -40,5 +40,5 @@ inputs = {
 # future = submit(CalculationFactory('bigdft'), **inputs)
 result = run(CalculationFactory('bigdft'), **inputs)
 
-computed_diff = result['bigdft'].get_content()
-print("Computed diff between files: \n{}".format(computed_diff))
+computed_BigDFT = result['bigdft'].get_content()
+print("Computed BigDFT between files: \n{}".format(computed_BigDFT))

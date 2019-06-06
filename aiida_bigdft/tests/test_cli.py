@@ -12,12 +12,12 @@ class TestDataCli(PluginTestCase):
         from click.testing import CliRunner
         from aiida.plugins import DataFactory
 
-        DiffParameters = DataFactory('bigdft')
-        self.parameters = DiffParameters({'ignore-case': True})
+        BigDFTParameters = DataFactory('bigdft')
+        self.parameters = BigDFTParameters({'ignore-case': True})
         self.parameters.store()
         self.runner = CliRunner()
 
-    def test_data_diff_list(self):
+    def test_data_BigDFT_list(self):
         """Test 'verdi data bigdft list'
 
         Tests that it can be reached and that it lists the node we have set up.
@@ -27,7 +27,7 @@ class TestDataCli(PluginTestCase):
         result = self.runner.invoke(list_, catch_exceptions=False)
         self.assertIn(str(self.parameters.pk), result.output)
 
-    def test_data_diff_export(self):
+    def test_data_BigDFT_export(self):
         """Test 'verdi data bigdft export'
 
         Tests that it can be reached and that it shows the contents of the node

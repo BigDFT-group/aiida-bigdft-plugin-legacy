@@ -15,13 +15,13 @@
     "version": "0.1.0a0",
     "entry_points": {
         "aiida.data": [
-            "bigdft = aiida_bigdft.data:DiffParameters"
+            "bigdft = aiida_bigdft.data:BigDFTParameters"
         ],
         "aiida.calculations": [
-            "bigdft = aiida_bigdft.calculations:DiffCalculation"
+            "bigdft = aiida_bigdft.calculations:BigDFTCalculation"
         ],
         "aiida.parsers": [
-            "bigdft = aiida_bigdft.parsers:DiffParser"
+            "bigdft = aiida_bigdft.parsers:BigDFTParser"
         ],
         "aiida.cmdline.data": [
             "bigdft = aiida_bigdft.cli:data_cli"

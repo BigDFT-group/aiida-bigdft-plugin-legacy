@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from aiida.orm import Dict
 from voluptuous import Schema, Optional
 
-# A subset of diff's command line options
+# A subset of BigDFT's command line options
 cmdline_options = {
     Optional('ignore-case'): bool,
     Optional('ignore-file-name-case'): bool,
@@ -21,9 +21,9 @@ cmdline_options = {
 }
 
 
-class DiffParameters(Dict):
+class BigDFTParameters(Dict):
     """
-    Command line options for diff.
+    Command line options for BigDFT.
 
     This class represents a python dictionary used to 
     pass command line options to the executable.
@@ -37,27 +37,27 @@ class DiffParameters(Dict):
         """
         Constructor for the data class
 
-        Usage: ``DiffParameters(dict{'ignore-case': True})``
+        Usage: ``BigDFTParameters(dict{'ignore-case': True})``
 
         :param parameters_dict: dictionary with commandline parameters
         :param type parameters_dict: dict
 
         """
         dict = self.validate(dict)
-        super(DiffParameters, self).__init__(dict=dict, **kwargs)
+        super(BigDFTParameters, self).__init__(dict=dict, **kwargs)
 
     def validate(self, parameters_dict):
         """Validate command line options.
 
         Uses the voluptuous package for validation. Find out about allowed keys using::
 
-            print(DiffParameters).schema.schema
+            print(BigDFTParameters).schema.schema
 
         :param parameters_dict: dictionary with commandline parameters
         :param type parameters_dict: dict
         :returns: validated dictionary
         """
-        return DiffParameters.schema(parameters_dict)
+        return BigDFTParameters.schema(parameters_dict)
 
     def cmdline_params(self, file1_name, file2_name):
         """Synthesize command line parameters.
@@ -90,6 +90,6 @@ class DiffParameters(Dict):
             {'ignore-case': True}
 
         """
-        string = super(DiffParameters, self).__str__()
+        string = super(BigDFTParameters, self).__str__()
         string += "\n" + str(self.get_dict())
         return string

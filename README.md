@@ -20,18 +20,18 @@ intended to help developers get started with their AiiDA plugins.
    inputs['file2'] = SinglefileData(file='/path/to/file2')
    ```
 
- * Specify command line options via a python dictionary and `DiffParameters`:
+ * Specify command line options via a python dictionary and `BigDFTParameters`:
    ```python
    d = { 'ignore-case': True }
-   DiffParameters = DataFactory('bigdft')
-   inputs['parameters'] = DiffParameters(dict=d)
+   BigDFTParameters = DataFactory('bigdft')
+   inputs['parameters'] = BigDFTParameters(dict=d)
    ```
 
- * `DiffParameters` dictionaries are validated using [voluptuous](https://github.com/alecthomas/voluptuous).
+ * `BigDFTParameters` dictionaries are validated using [voluptuous](https://github.com/alecthomas/voluptuous).
    Find out about supported options:
    ```python
-   DiffParameters = DataFactory('bigdft')
-   print(DiffParameters.schema.schema)
+   BigDFTParameters = DataFactory('bigdft')
+   print(BigDFTParameters.schema.schema)
    ```
 
 ## Installation
