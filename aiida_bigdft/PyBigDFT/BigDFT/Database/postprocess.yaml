@@ -1,0 +1,136 @@
+fragment_multipoles:
+  help: |
+    Compute the multipoles and purity value of a system given its
+    partitioning into fragments.
+  tool: bigdft-tool
+  mpi: false
+  args:
+    matrix_format:
+      shorthelp: format of the sparse matrices.
+      default: serial_text
+    metadata_file:
+      shorthelp: input file with the sparse matrix metadata
+      default: sparsematrix_metadata.dat
+    fragment_file:
+      shorthelp: file with the fragment to be analyzed
+      default: fragment.dat
+    overlap_file:
+      shorthelp: input file with the overlap matrix
+      default: overlap_sparse.txt
+    kernel_file:
+      shorthelp: input file with the coefficients
+      default: density_kernel_sparse.txt
+    kernel_matmul_file:
+      shorthelp: kernel matrix multiplication sparsity pattern file.
+      default: density_kernel_sparse_matmul.txt
+    multipole_matrix_0_0:
+      default: mpmat_0_0.txt
+    multipole_matrix_1_0:
+      default: mpmat_1_-1.txt
+    multipole_matrix_1_1:
+      default: mpmat_1_0.txt
+    multipole_matrix_1_2:
+      default: mpmat_1_1.txt
+    multipole_matrix_2_0:
+      default: mpmat_2_-2.txt
+    multipole_matrix_2_1:
+      default: mpmat_2_-1.txt
+    multipole_matrix_2_2:
+      default: mpmat_2_0.txt
+    multipole_matrix_2_3:
+      default: mpmat_2_1.txt
+    multipole_matrix_2_4:
+      default: mpmat_2_2.txt
+    orbital_file:
+      shorthelp: input file specifying which orbitals to include
+      default: orbitals.yaml
+    coeff_file:
+      shorthelp: input file with the coefficients
+      default: coeff.txt
+    log_file:
+      shorthelp: the output file to write to.
+      default: mp.yaml
+matrixpower:
+  tool: memguess
+  help: |
+    Compute the powers of a matrix.
+  mpi: false
+  args:
+    inmatrix_file:
+      shorthelp: matrix A. Binary format.
+      default: inmatrix.bin
+    outmatrix_file:
+      shorthelp: matrix B. Binary format.
+      default: outmatrix.bin
+    nat:
+      shorthelp: number of atoms
+      default: 1
+    nbasis:
+      shorthelp: number of support functions
+      default: 1
+    power:
+      shorthelp: which power to raise the matrix to.
+      default: 1.0
+multiply_matrices:
+  help: |
+    Multiply two matrices.
+  tool: memguess
+  mpi: false
+  args:
+    amatrix_file:
+      shorthelp: matrix A
+      default: amatrix.bin
+    bmatrix_file:
+      shorthelp: matrix B
+      default: bmatrix.bin
+    cmatrix_file:
+      shorthelp: matrix C
+      default: cmatrix.bin
+    nat:
+      shorthelp: number of atoms
+      default: 1
+    nbasis:
+      shorthelp: number of support functions
+      default: 1
+convert_matrix_format:
+  help: |
+    Convert between different matrix formats.
+  tool: bigdft-tool
+  mpi: false
+  args:
+    conversion:
+      shorthelp: From which format to convert from and to.
+      default: none
+    infile:
+      shorthelp: matrix to convert from.
+      default: infile.dat
+    outfile:
+      shorthelp: matrix to convert to.
+      default: outfile.dat
+compute_spillage:
+  help: |
+    Run routines associated with the BigPoly tool
+  tool: BigPoly
+  mpi: true
+  args:
+    matrix_format:
+      shorthelp: format of the sparse matrices.
+      default: serial_text
+    infile:
+      shorthelp: first input file.
+      default: infile.dat
+    infile2:
+      shorthelp: second input file.
+      default: infile2.dat
+    outfile:
+      shorthelp: result is stored here.
+      default: outfile.dat
+    outfile2:
+      shorthelp: any secondary result is stored here.
+      default: outfile2.dat
+    threshold:
+      shorthelp: for flushing small values to zero.
+      default: 1e-6
+    convergence_threshold:
+      shorthelp: a convergence criteria for stopping iterations.
+      default: 1e-4
