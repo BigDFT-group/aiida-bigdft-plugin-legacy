@@ -9,7 +9,10 @@ Register data types via the "aiida.data" entry point in setup.json.
 # or any other data type listed under 'verdi data'
 from __future__ import absolute_import
 from aiida.orm import Dict
+from aiida.orm.nodes import Data
 from voluptuous import Schema, Optional
+
+from BigDFT import Logfiles
 
 # A subset of BigDFT's command line options
 cmdline_options = {
@@ -21,7 +24,7 @@ cmdline_options = {
 }
 
 
-class BigDFTParameters(Dict):
+class BigDFTParameters(Data):
     """
     Command line options for BigDFT.
 
@@ -30,8 +33,6 @@ class BigDFTParameters(Dict):
     """
 
     # "voluptuous" schema  to add automatic validation
-    schema = Schema(cmdline_options)
-
     # pylint: disable=redefined-builtin
     def __init__(self, dict=None, **kwargs):
         """
@@ -43,22 +44,17 @@ class BigDFTParameters(Dict):
         :param type parameters_dict: dict
 
         """
-        dict = self.validate(dict)
-        super(BigDFTParameters, self).__init__(dict=dict, **kwargs)
+#        dict = self.validate(dict)
+        super(BigDFTParameters, self).__init__(**kwargs)
+        self.set_attribute('dict',  dict)
 
-    def validate(self, parameters_dict):
-        """Validate command line options.
-
-        Uses the voluptuous package for validation. Find out about allowed keys using::
-
-            print(BigDFTParameters).schema.schema
-
-        :param parameters_dict: dictionary with commandline parameters
-        :param type parameters_dict: dict
-        :returns: validated dictionary
+    @property
+    def dict(self):
         """
-        return BigDFTParameters.schema(parameters_dict)
-
+        Return the Logfile
+        """
+        return self.get_attribute('dict')
+        
     def cmdline_params(self, file1_name, file2_name):
         """Synthesize command line parameters.
 
@@ -70,16 +66,16 @@ class BigDFTParameters(Dict):
         :param type file_name2: str
 
         """
-        parameters = []
+#        parameters = []
 
-        pm_dict = self.get_dict()
-        for k in pm_dict.keys():
-            if pm_dict[k]:
-                parameters += ['--' + k]
+#        pm_dict = self.get_dict()
+#        for k in pm_dict.keys():
+#            if pm_dict[k]:
+#                parameters += ['--' + k]
 
-        parameters += [file1_name, file2_name]
+#        parameters += [file1_name, file2_name]
 
-        return [str(p) for p in parameters]
+#        return [str(p) for p in parameters]
 
     def __str__(self):
         """String representation of node.
@@ -93,3 +89,30 @@ class BigDFTParameters(Dict):
         string = super(BigDFTParameters, self).__str__()
         string += "\n" + str(self.get_dict())
         return string
+        
+        
+class BigDFTLogfile(Data):
+    """
+    Wrapper around a Logfile object 
+
+    This class represents a BigDFT Logfile object.
+    """
+    def __init__(self, path=None, **kwargs):
+        super(BigDFTLogfile, self).__init__(**kwargs)
+        self.set_attribute('logfile',  Logfiles.Logfile(path).log)
+
+    @property
+    def logfile(self):
+        """
+        Return the Logfile
+        """
+        return self.get_attribute('logfile')
+
+    @logfile.setter
+    def logfile(self,path):
+        """
+        Set the logfile
+
+        :raise ValueError:
+        """
+        self.set_attribute('logfile',  Logfiles.Logfile(path).log)

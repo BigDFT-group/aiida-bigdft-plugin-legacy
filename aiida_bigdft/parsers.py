@@ -6,12 +6,16 @@ Register parsers via the "aiida.parsers" entry point in setup.json.
 """
 from __future__ import absolute_import
 
+from aiida import orm
 from aiida.engine import ExitCode
 from aiida.parsers.parser import Parser
 from aiida.plugins import CalculationFactory
+from aiida.plugins import DataFactory
+
+from BigDFT import Logfiles
 
 BigDFTCalculation = CalculationFactory('bigdft')
-
+BigDFTLogfile = DataFactory('bigdft_logfile')
 
 class BigDFTParser(Parser):
     """
@@ -41,7 +45,9 @@ class BigDFTParser(Parser):
         from aiida.orm import SinglefileData
 
         output_filename = self.node.get_option('output_filename')
-
+        jobname = self.node.get_option('jobname')
+        if jobname is not None:
+            output_filename = "log-"+jobname+".yaml"
         # Check that folder content is as expected
         files_retrieved = self.retrieved.list_object_names()
         files_expected = [output_filename]
@@ -53,8 +59,15 @@ class BigDFTParser(Parser):
 
         # add output file
         self.logger.info("Parsing '{}'".format(output_filename))
-        with self.retrieved.open(output_filename, 'rb') as handle:
-            output_node = SinglefileData(file=handle)
-        self.out('bigdft', output_node)
+#        print(self.retrieved._repository._get_base_folder().get_abs_path(output_filename))
+        output = BigDFTLogfile(self.retrieved._repository._get_base_folder().get_abs_path(output_filename))
+        output.store()
+#        with self.retrieved.open(output_filename, 'rb') as handle:
+#            output_node = SinglefileData(file=handle)
+#        print(output_dict)
+#        output_dict_aiida=orm.Dict(dict=output_dict)
+#        output_dict_aiida.store()
+#        output_log_aiida=BigDFTLogfile(output)
+        self.out('bigdft_logfile', output)
 
         return ExitCode(0)

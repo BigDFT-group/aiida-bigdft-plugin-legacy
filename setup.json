@@ -15,7 +15,8 @@
     "version": "0.1.0a0",
     "entry_points": {
         "aiida.data": [
-            "bigdft = aiida_bigdft.data:BigDFTParameters"
+            "bigdft = aiida_bigdft.data:BigDFTParameters",
+            "bigdft_logfile = aiida_bigdft.data:BigDFTLogfile"
         ],
         "aiida.calculations": [
             "bigdft = aiida_bigdft.calculations:BigDFTCalculation"
