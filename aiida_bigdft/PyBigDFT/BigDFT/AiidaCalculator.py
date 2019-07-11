@@ -1,5 +1,6 @@
 from Calculators import SystemCalculator, Runner
 from futile.Utils import write as safe_print
+from futile.Utils import dict_merge
 import InputActions
 import Inputfiles
 
@@ -13,7 +14,7 @@ from aiida.engine import launch, CalcJob
 from aiida.parsers import Parser
 from aiida.orm.nodes.data import List, SinglefileData
 from aiida.plugins import DataFactory
-from aiida.orm import load_code
+from aiida.orm import load_code, load_node
 from aiida.engine import Process
 
 class BigDFTCalcJob(CalcJob):
@@ -22,6 +23,9 @@ class BigDFTCalcJob(CalcJob):
     @classmethod
     def define(cls, spec):
         super(BigDFTCalcJob, cls).define(spec)
+        spec.input('metadata.options.command_line', valid_type=six.string_types, default='')
+        spec.input('metadata.options.local_copy_list', valid_type=List)
+        spec.input('metadata.options.retrieve_list', valid_type=List)
 #        spec.input('metadata.options.output_filename', valid_type=six.string_types, default="log.yaml")
         
     def prepare_for_submission(self, folder):
@@ -29,15 +33,15 @@ class BigDFTCalcJob(CalcJob):
         codeinfo.code_uuid = self.inputs.code.uuid
 #        codeinfo.stdout_name = outfile
         codeinfo.withmpi = self.inputs.metadata.options.withmpi
-        if self.local_options['command_line'] is not '':
-          codeinfo.cmdline_params = self.local_options['command_line'].split()
+        if self.inputs.metadata.options.command_line is not '':
+          codeinfo.cmdline_params = self.inputs.metadata.options.command_line.split()
 #        print(self.local_options['command_line'])
         #local_copy_list = []
         # Prepare a `CalcInfo` to be returned to the engine
         calcinfo = datastructures.CalcInfo()
         calcinfo.codes_info = [codeinfo]
-        calcinfo.local_copy_list = self.local_options['local_copy_list']
-        calcinfo.retrieve_list = self.local_options['retrieve_list']
+        calcinfo.local_copy_list = self.inputs.metadata.options.local_copy_list.get_list()
+        calcinfo.retrieve_list = self.inputs.metadata.options.retrieve_list.get_list()
 #        self.options['scheduler_stdout']="job.stdout"
         return calcinfo
 
@@ -93,7 +97,7 @@ class AiidaCalculator(SystemCalculator):
             self.metadata['options']['queue_name']=self.run_options['queue_name']
         if 'account' in self.run_options:
             self.metadata['options']['account']=self.run_options['account']
-        print(self.metadata)
+#        print(self.metadata)
         run_args=SystemCalculator.pre_processing(self)
 
         #input files needed for calculation. This is basically prepare_for_submission
@@ -116,11 +120,17 @@ class AiidaCalculator(SystemCalculator):
         if name is not 'log.yaml':
             outfile = "log-"+name+".yaml"
             timefile = "time-"+name+".yaml"
-        self.job.local_options={
-          'retrieve_list': [outfile, timefile, "forces*","final*", ["./debug/bigdft-err*",".",2]],
-          'local_copy_list': local_copy_list,
-          'command_line': self._get_command()
-        }
+#        self.job.local_options={
+        retrieve_list=List()
+        retrieve_list.extend([outfile, timefile, "forces*","final*", ["./debug/bigdft-err*",".",2]])
+        retrieve_list.store()
+        self.metadata['options']['retrieve_list']= retrieve_list
+        local_copy_List=List()
+        local_copy_List.extend(local_copy_list)
+        local_copy_List.store()
+        self.metadata['options']['local_copy_list']= local_copy_List
+        self.metadata['options']['command_line']= self._get_command()
+#        }
         return run_args
 
     def process_run(self, **kwargs):
@@ -129,7 +139,6 @@ class AiidaCalculator(SystemCalculator):
         """
         # check if the debug file will be updated (case of erroneous run)
         timedbg = self._get_debugfile_date()
-        verbose = self.run_options['verbose']
         # Run the command
         out = launch.run(self.job,code=self.code,metadata=self.metadata)
         name = self.run_options.get('name', '')
@@ -140,19 +149,48 @@ class AiidaCalculator(SystemCalculator):
     def run(self, **kwargs):
         self._run_options(**kwargs)
         name = self.run_options.get('name', '')
+        async = self.run_options.get('async', False)
         if self.run_options['skip'] and name in self.logfiles:
             return self.logfiles[name]
         else:
-            from futile.Utils import dict_merge
-
             run_args=self.pre_processing()
-            run_results = self.process_run(**run_args)
-    #        safe_print('run_args',run_args,'run_results',run_results)
-            dict_merge(dest=run_args, src=run_results)
-    #        safe_print('run_updated, again',run_args)
-            self.logfiles[name] = SystemCalculator.post_processing(self,**run_args)
-            return self.logfiles[name]
+            if(async):
+              node = launch.submit(self.job,code=self.code,metadata=self.metadata)
+              run_results={'node': node}
+              dict_merge(dest=run_args, src=run_results)
+              return run_args
+            else:
+              run_results = self.process_run(**run_args)
+    #          safe_print('run_args',run_args,'run_results',run_results)
+              dict_merge(dest=run_args, src=run_results)
+    #          safe_print('run_updated, again',run_args)
+              self.logfiles[name] = SystemCalculator.post_processing(self,**run_args)
+              return self.logfiles[name]
 
+    def submit(self, **kwargs):
+        self._run_options(**kwargs)
+        name = self.run_options.get('name', '')
+        if self.run_options['skip'] and name in self.logfiles:
+            return self.logfiles[name]
+        else:
+            run_args=self.pre_processing()
+            node = launch.submit(self.job,code=self.code,metadata=self.metadata)
+            run_results={'node': node}
+            dict_merge(dest=run_args, src=run_results)
+            return run_args
+
+    def get_logs(self, pk, name):
+#      name = self.run_options.get('name', '')
+      self.outputs[name]=load_node(pk).outputs
+      logname = 'log-' + name + '.yaml' if name else 'log.yaml'
+      logfile = self.outputs[name]['retrieved']._repository._get_base_folder().get_abs_path(logname)
+      self.run_options['name'] = name #to avoid comparing times with wrong input name
+      timedbg = self._get_debugfile_date()
+      command = self._get_command()
+      run_args={'timedbg': timedbg, 'logname': logfile, 'command': command}
+      self.logfiles[name] = SystemCalculator.post_processing(self,**run_args)
+      return self.logfiles[name]
+            
     def _get_inputpseudos(self):
         return {}
 
