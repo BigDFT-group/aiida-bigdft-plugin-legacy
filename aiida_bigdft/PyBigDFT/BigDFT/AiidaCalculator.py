@@ -84,10 +84,10 @@ class AiidaCalculator(SystemCalculator):
             'resources' : {
                 'num_machines': self.run_options.get('num_machines', 1), 
                 'num_mpiprocs_per_machine': self.run_options.get('mpiprocs_per_machine', 1),
-                'num_cores_per_mpiproc': self.run_options['omp']
+                'num_cores_per_mpiproc': self.run_options.get('omp', 1)
                 },
             'withmpi' : True,
-            'environment_variables': {"OMP_NUM_THREADS": str(self.run_options.get('cores_per_mpiproc', 1)) },
+            'environment_variables': {"OMP_NUM_THREADS": str(self.run_options.get('omp', 1)) },
             'max_wallclock_seconds' : self.run_options.get('walltime', 30 * 60),
             'scheduler_stdout':'_scheduler-stdout.txt',
             'scheduler_stderr':'_scheduler-stderr.txt'
@@ -97,6 +97,8 @@ class AiidaCalculator(SystemCalculator):
             self.metadata['options']['queue_name']=self.run_options['queue_name']
         if 'account' in self.run_options:
             self.metadata['options']['account']=self.run_options['account']
+        if 'mem' in self.run_options:
+            self.metadata['options']['max_memory_kb']=self.run_options['mem']
 #        print(self.metadata)
         run_args=SystemCalculator.pre_processing(self)
 
@@ -112,6 +114,7 @@ class AiidaCalculator(SystemCalculator):
         if posinp_filename is None:
             posinp_filename = self.run_options.get('posinp', None)
         if posinp_filename is not None:
+            print(posinp_filename)
             posinp_filedata = SinglefileData(file=os.path.abspath(posinp_filename)).store()
             local_copy_list.append((posinp_filedata.uuid, posinp_filedata.filename,posinp_filename))
         name=self.run_options.get('name', 'log.yaml')
@@ -165,6 +168,8 @@ class AiidaCalculator(SystemCalculator):
               dict_merge(dest=run_args, src=run_results)
     #          safe_print('run_updated, again',run_args)
               self.logfiles[name] = SystemCalculator.post_processing(self,**run_args)
+              print("setting data dir to "+self.outputs[name]['retrieved']._repository._get_base_folder().abspath)
+              setattr(self.logfiles[name],"data_directory",self.outputs[name]['retrieved']._repository._get_base_folder().abspath)
               return self.logfiles[name]
 
     def submit(self, **kwargs):
@@ -189,6 +194,8 @@ class AiidaCalculator(SystemCalculator):
       command = self._get_command()
       run_args={'timedbg': timedbg, 'logname': logfile, 'command': command}
       self.logfiles[name] = SystemCalculator.post_processing(self,**run_args)
+      print("setting data dir to "+self.outputs[name]['retrieved']._repository._get_base_folder().abspath)
+      setattr(self.logfiles[name],"data_directory",self.outputs[name]['retrieved']._repository._get_base_folder().abspath)
       return self.logfiles[name]
             
     def _get_inputpseudos(self):
