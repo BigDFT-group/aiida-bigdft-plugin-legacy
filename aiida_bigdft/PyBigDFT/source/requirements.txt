@@ -1,4 +1,0 @@
-numpy
-nbsphinx
-sphinx-jinja
-guzzle_sphinx_theme
