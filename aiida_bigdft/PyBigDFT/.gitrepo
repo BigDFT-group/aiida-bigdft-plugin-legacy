@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://gitlab.com/l_sim/pybigdft.git
+	branch = devel
+	commit = 7b88fbe0c158c50a290f1ce3db9b1da72e99cfa1
+	parent = 3dcaa18dd1b65cdfecf8f76ca16476195447147a
+	method = merge
+	cmdver = 0.4.0
