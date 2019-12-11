@@ -20,7 +20,7 @@ class MatrixMetadata:
       matdim (int): the dimension of the matrix.
     """
     def __init__(self, filename):
-        from Atom import Atom
+        from BigDFT.Atom import Atom
         self.atoms = []
         symbol_lookup = []
         with open(filename, "r") as ifile:
@@ -59,7 +59,8 @@ class MatrixMetadata:
         of a system.
 
         Args:
-          system (Fragments.System): the set of fragments to get the indices of.
+          system (Fragments.System): the set of fragments to get the indices
+            of.
 
         Return:
           (dict): a mapping from fragment to indices.
@@ -90,9 +91,9 @@ def compute_spillage_values(sinvxh, sinvxh2, frag_indices, target):
 
     Returns:
       (tuple): ``H2F``,``HGHF``, where the first contribution is the target
-        value that the sum of the other contribution should reach.
-        Such second term is the interaction spillage between the target and
-        each fragment.
+      value that the sum of the other contribution should reach.
+      Such second term is the interaction spillage between the target and
+      each fragment.
     """
     from numpy import trace
     indices_f = frag_indices[target]
@@ -171,27 +172,6 @@ def serial_compute_puritybase(sfile, dfile):
 
     return dmat.dot(smat)
 
-def serial_compute_puritybase(sfile, dfile):
-    """
-    This routine computes the matrix K*S using python.
-
-    You will need this for computing the purity values.
-
-    Args:
-     sfile (str): the file name of the overlap matrix. Must be in ccs format
-     dfile (str): the file name of the density kernel. Must be in ccs format
-
-    Returns:
-      (scipy.sparse.csc, scipy.sparse.csc): K*S
-    """
-    from scipy.sparse import csc_matrix
-    from scipy.io import mmread
-
-    # Read from file
-    smat = _read_ccs(sfile)
-    dmat = _read_ccs(dfile)
-
-    return dmat.dot(smat)
 
 def _read_ccs(fname):
     """

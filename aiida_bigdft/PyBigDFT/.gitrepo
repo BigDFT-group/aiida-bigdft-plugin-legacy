@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://gitlab.com/l_sim/pybigdft.git
 	branch = devel
-	commit = 7b88fbe0c158c50a290f1ce3db9b1da72e99cfa1
+	commit = d87b5ddf0aec6ec3e53732e7bd20d407501011d1
 	parent = 3dcaa18dd1b65cdfecf8f76ca16476195447147a
 	method = rebase
 	cmdver = 0.4.0

@@ -49,7 +49,13 @@ Organize runs and analyze output in a dataset
 
 .. toctree:: BigDFT.PostProcessing
 
+.. toctree:: BigDFT.Visualization
+
 .. toctree:: datasets
+
+Interoperability with other chemistry programs
+
+.. toctree:: BigDFT.OpenBabel
 
 (Py)BigDFT Tutorial page
 

@@ -1,25 +1,30 @@
 """Actions to define on the Input parameters.
 
-This module defines some of the most common actions that a BigDFT user might like to
-perform on the input file. Such module therefore sets some of the keys of the input
-dictionary to the values needed to perform the operations.
-Users might also inspire to the actions performed in order to customize the runs in a different way.
-All the functions of this module have as first argument ``inp``, the dictionary of the input parameters.
+This module defines some of the most common actions that a BigDFT user might
+like to perform on the input file. Such module therefore sets some of the keys
+of the input dictionary to the values needed to perform the operations.
+Users might also inspire to the actions performed in order to customize the
+runs in a different way. All the functions of this module have as first
+argument ``inp``, the dictionary of the input parameters.
 
-Many other actions are available in BigDFT code. This module only regroups the most common.
-Any of these functionalities might be removed from the input file by the :py:func:`remove` function.
+Many other actions are available in BigDFT code. This module only regroups the
+most common. Any of these functionalities might be removed from the input file
+by the :py:func:`remove` function.
 
 Note:
 
-   Any of the action of this module, including the :py:func:`remove` function, can be also applied
-   to an instance of the :py:class:`BigDFT.Inputfiles.Inputfile` class, by removing the first argument (``inp``).
-   This adds extra flexibility as the same method may be used to a dictionary instance or to a BigDFT input files.
+   Any of the action of this module, including the :py:func:`remove` function,
+   can be also applied to an instance of the
+   :py:class:`BigDFT.Inputfiles.Inputfile` class, by removing the first
+   argument (``inp``). This adds extra flexibility as the same method may be
+   used to a dictionary instance or to a BigDFT input files.
    See the example :ref:`input_action_example`.
 
 Note:
 
-   Each of the actions here **must** have default value for the arguments (except the input dictionary ``inp``).
-   This is needed for a good behaviour of the function `remove`.
+   Each of the actions here **must** have default value for the arguments
+   (except the input dictionary ``inp``). This is needed for a good behaviour
+   of the function `remove`.
 
 
 .. autosummary::
@@ -58,32 +63,37 @@ from futile.Utils import dict_set
 __set__ = dict_set
 """func: Action function.
 
-This is the pointer to the set function, useful to modify the action with the undo method
+This is the pointer to the set function, useful to modify the action with the
+undo method
 
 """
 
-def __undo__(inp,*subfields):
+
+def __undo__(inp, *subfields):
     """
     Eliminate the last item of the subfields as provided to dict_set
     """
     from futile.Utils import push_path
-    #remove the last key until the parent is empty
-    lastkey=-1
-    tmp={}
-    while len(subfields) > -lastkey and tmp=={}:
-        keys=subfields[:lastkey]
-        tmp,k=push_path(inp,*keys)
+    # remove the last key until the parent is empty
+    lastkey = -1
+    tmp = {}
+    while len(subfields) > -lastkey and tmp == {}:
+        keys = subfields[:lastkey]
+        tmp, k = push_path(inp, *keys)
         tmp.pop(k)
-        lastkey -=1
+        lastkey -= 1
 
-def remove(inp,action):
+
+def remove(inp, action):
     """Remove action from the input dictionary.
 
-    Remove an action from the input file, thereby restoring the **default** value, as if the action were not specified.
+    Remove an action from the input file, thereby restoring the **default**
+    value, as if the action were not specified.
 
     Args:
        inp (dict): dictionary to remove the action from.
-       action (func): one of the actions of this module. It does not need to be specified before, in which case it produces no effect.
+       action (func): one of the actions of this module. It does not need to be
+       specified before, in which case it produces no effect.
 
     Example:
        >>> from Calculators import SystemCalculator as C
@@ -94,122 +104,151 @@ def remove(inp,action):
        >>> log=code.run(input=inp) # perform calculations
        >>> remove(write_orbitals_on_disk) #remove the action
        >>> read_orbitals_from_disk(inp)
-       >>> log2=code.run(input=inp) #this will restart the SCF from the previous orbitals
+       >>> # this will restart the SCF from the previous orbitals
+       >>> log2=code.run(input=inp)
     """
     global __set__
     __set__ = __undo__
     action(inp)
     __set__ = dict_set
 
-def set_hgrid(inp,hgrids=0.4):
+
+def set_hgrid(inp, hgrids=0.4):
     """
     Set the wavelet grid spacing.
 
     Args:
-       hgrid (float,list): list of the grid spacings in the three directions. It might also be a scalar, which implies the same spacing
+       hgrid (float,list): list of the grid spacings in the three directions.
+       It might also be a scalar, which implies the same spacing
     """
-    __set__(inp,'dft','hgrids',hgrids)
+    __set__(inp, 'dft', 'hgrids', hgrids)
 
-def set_wavefunction_convergence(inp,gnrm=1.0e-04):
+
+def set_wavefunction_convergence(inp, gnrm=1.0e-04):
     """
-    Set the tolerance acceptance level for stopping the self-consistent iterations
+    Set the tolerance acceptance level for stopping the self-consistent
+    iterations
 
     Args:
        gnrm (float): the tolerance level
     """
-    __set__(inp,'dft','gnrm_cv',gnrm)
+    __set__(inp, 'dft', 'gnrm_cv', gnrm)
 
-def set_rmult(inp,rmult=None,coarse=5.0,fine=8.0):
+
+def set_rmult(inp, rmult=None, coarse=5.0, fine=8.0):
     """
     Set the wavelet grid extension by modifying the multiplicative radii.
 
     Args:
-       rmult (float,list): list of two values that have to be used for the coarse and the fine resolution grid. It may also be a scalar.
-       coarse (float): if the argument ``rmult`` is not provided it sets the coarse radius multiplier
-       fine (float): if the argument ``rmult`` is not provided it sets the fine radius multiplier
+       rmult (float,list): list of two values that have to be used for the
+         coarse and the fine resolution grid. It may also be a scalar.
+       coarse (float): if the argument ``rmult`` is not provided it sets the
+         coarse radius multiplier
+       fine (float): if the argument ``rmult`` is not provided it sets the fine
+         radius multiplier
     """
-    rmlt=[coarse,fine] if rmult is None else rmult
-    __set__(inp,'dft','rmult',rmlt)
+    rmlt = [coarse, fine] if rmult is None else rmult
+    __set__(inp, 'dft', 'rmult', rmlt)
 
-def set_symmetry(inp,yes=True):
+
+def set_symmetry(inp, yes=True):
     """
-    Set the symmetry detection for the charge density and the ionic forces and stressdef set_symmetry(inp,yes=True):
+    Set the symmetry detection for the charge density and the ionic forces and
+    stressdef set_symmetry(inp,yes=True):
 
     Args:
        yes (bool): If ``False`` the symmetry detection is disabled
     """
-    __set__(inp,'dft','disablesym', not yes)
+    __set__(inp, 'dft', 'disablesym', not yes)
+
 
 def set_linear_scaling(inp):
     """
     Activates the linear scaling mode
     """
-    newid='linear'
-    previous_ipid=inp.get('dft','False')
-    if previous_ipid: previous_ipid=inp.get('inputpsiid','False')
-    if previous_ipid == 2: newid=102
+    newid = 'linear'
+    previous_ipid = inp.get('dft', 'False')
+    if previous_ipid:
+        previous_ipid = inp.get('inputpsiid', 'False')
+    if previous_ipid == 2:
+        newid = 102
 
-    __set__(inp,'dft','inputpsiid',newid)
+    __set__(inp, 'dft', 'inputpsiid', newid)
 
-def set_mesh_sizes(inp,ngrids=64):
+
+def set_mesh_sizes(inp, ngrids=64):
     """
     Constrain the number of grid points in each direction.
-    This is useful when performing periodic system calculations with variable cells which need to be compared each other.
-    In this way the number of degrees of freedom is kept constant throughout the various simuilations.
+    This is useful when performing periodic system calculations with variable
+    cells which need to be compared each other. In this way the number of
+    degrees of freedom is kept constant throughout the various simuilations.
 
     Args:
-       ngrids (int,list): list of the number of mesh points in each direction. Might be a scalar.
+       ngrids (int,list): list of the number of mesh points in each direction.
+         Might be a scalar.
     """
-    __set__(inp,'dft','ngrids',ngrids)
+    __set__(inp, 'dft', 'ngrids', ngrids)
 
-def spin_polarize(inp,mpol=1):
+
+def spin_polarize(inp, mpol=1):
     """
     Add a collinear spin polarization to the system.
 
     Arguments:
        mpol (int): spin polarization in Bohr magneton units.
     """
-    __set__(inp,'dft','nspin',2)
-    __set__(inp,'dft','mpol',mpol)
+    __set__(inp, 'dft', 'nspin', 2)
+    __set__(inp, 'dft', 'mpol', mpol)
 
-def charge(inp,charge=-1):
+
+def charge(inp, charge=-1):
     """
     Charge the system
 
     Arguments:
-        charge (int,float): value of the charge in units of *e* (the electron has charge -1). Also accept floating point numbers.
+        charge (int,float): value of the charge in units of *e* (the electron
+          has charge -1). Also accept floating point numbers.
     """
-    __set__(inp,'dft','qcharge',charge)
+    __set__(inp, 'dft', 'qcharge', charge)
 
-def apply_electric_field(inp,elecfield=[0,0,1.e-3]):
+
+def apply_electric_field(inp, elecfield=[0, 0, 1.e-3]):
     """
     Apply an external electric field on the system
 
     Args:
-       electric (list, float): Values of the Electric Field in the three directions. Might also be a scalar.
+       electric (list, float): Values of the Electric Field in the three
+         directions. Might also be a scalar.
     """
-    __set__(inp,'dft','elecfield',[ e for e in elecfield])
+    __set__(inp, 'dft', 'elecfield', [e for e in elecfield])
+
 
 def charge_and_polarize(inp):
     """
-    Charge the system by removing one electron. Assume that the original system is closed shell, thus polarize.
+    Charge the system by removing one electron. Assume that the original
+      system is closed shell, thus polarize.
     """
-    charge(inp,charge=1)
-    spin_polarize(inp,mpol=1)
+    charge(inp, charge=1)
+    spin_polarize(inp, mpol=1)
 
-def set_SCF_method(inp,method='dirmin',mixing_on='density',mixing_scheme='Pulay'):
+
+def set_SCF_method(inp, method='dirmin', mixing_on='density',
+                   mixing_scheme='Pulay'):
     """
     Set the algorithm for SCF.
 
     Args:
-       method (str): The algoritm chosen. Might be different for the cubic (CS) or linear scaling (LS) algorithm.
+       method (str): The algoritm chosen. Might be different for the cubic (CS)
+         or linear scaling (LS) algorithm.
          * dirmin: Direct minimization approach (valid both to LS and CS)
          * mixing: Mixing scheme (only CS)
          * foe: Fermi Operator Expansion (only LS)
-         * pexsi: Pole EXpansion and Selected Inversion method (only LS, require PEXSI compilation)
+         * pexsi: Pole EXpansion and Selected Inversion method (only LS,
+             require PEXSI compilation)
          * diag: Explicit diagonalization (only LS, for validation purposes)
 
-       mixing_on (str): May be ``"density"`` or ``"potential"`` in the ``"mixing"`` case, decide to which quantity the mixing to be performed
+       mixing_on (str): May be ``"density"`` or ``"potential"`` in the
+         ``"mixing"`` case, decide to which quantity the mixing to be performed
 
        mixing_scheme (str): May be:
 
@@ -221,32 +260,40 @@ def set_SCF_method(inp,method='dirmin',mixing_on='density',mixing_scheme='Pulay'
 
           * Anderson2: Anderson scheme based on the two pervious iterations
 
-          * CG: Conjugate Gradient based on the minimum of the energy with respect of the potential
+          * CG: Conjugate Gradient based on the minimum of the energy with
+                respect of the potential
 
     Warning:
        Only the FOE method exhibit asymptotic linear scaling regime.
 
     Todo:
-       Check if the linear scaling case needs another input variable for the mixing of the potential (density)
+       Check if the linear scaling case needs another input variable for the
+       mixing of the potential (density)
 
     """
     method.upper()
-    if method != 'MIXING': __set__(inp,'lin_kernel','linear_method',method)
-    if method=='DIRMIN':
-       __set__(inp,'mix','iscf',0)
-       return
-    iscf=0
-    if mixing_on == 'density': iscf+=10
-    if mixing_scheme == 'Pulay': iscf+=7
-    if mixing_scheme == 'Anderson': iscf+=3
-    if mixing_scheme == 'Anderson2': iscf+=4
-    if mixing_scheme == 'Simple': iscf+=2
-    if mixing_scheme == 'CG': iscf+=5
-    __set__(inp,'mix','iscf',iscf)
+    if method != 'MIXING':
+        __set__(inp, 'lin_kernel', 'linear_method', method)
+    if method == 'DIRMIN':
+        __set__(inp, 'mix', 'iscf', 0)
+        return
+    iscf = 0
+    if mixing_on == 'density':
+        iscf += 10
+    if mixing_scheme == 'Pulay':
+        iscf += 7
+    if mixing_scheme == 'Anderson':
+        iscf += 3
+    if mixing_scheme == 'Anderson2':
+        iscf += 4
+    if mixing_scheme == 'Simple':
+        iscf += 2
+    if mixing_scheme == 'CG':
+        iscf += 5
+    __set__(inp, 'mix', 'iscf', iscf)
 
 
-
-def add_empty_SCF_orbitals(inp,norbs=10):
+def add_empty_SCF_orbitals(inp, norbs=10):
     """
     Insert ``norbs`` empty orbitals in the SCF procedure
 
@@ -254,12 +301,14 @@ def add_empty_SCF_orbitals(inp,norbs=10):
        norbs (int): Number of empty orbitals
 
     Warning:
-       In linear scaling case, this is only meaningful for the direct minimization approach.
+       In linear scaling case, this is only meaningful for the direct
+       minimization approach.
     """
-    __set__(inp,'mix','norbsempty',norbs)
-    __set__(inp,'lin_general','extra_states',norbs)
+    __set__(inp, 'mix', 'norbsempty', norbs)
+    __set__(inp, 'lin_general', 'extra_states', norbs)
 
-def write_cubefiles_around_fermi_level(inp,nplot=1):
+
+def write_cubefiles_around_fermi_level(inp, nplot=1):
     """
     Writes the ``nplot`` orbitals around the fermi level in cube format
 
@@ -272,9 +321,10 @@ def write_cubefiles_around_fermi_level(inp,nplot=1):
     Warning:
        This would work only for the cubic scaling code at present.
     """
-    __set__(inp,'dft','nplot',nplot)
+    __set__(inp, 'dft', 'nplot', nplot)
 
-def write_orbitals_on_disk(inp,format='binary'):
+
+def write_orbitals_on_disk(inp, format='binary'):
     """
     Set the code to write the orbitals on disk in the provided format
 
@@ -287,62 +337,73 @@ def write_orbitals_on_disk(inp,format='binary'):
     Todo:
       Verify if this option works for a linear scaling calulation.
     """
-    fmt=format
-    __set__(inp,'output','orbitals',fmt)
+    fmt = format
+    __set__(inp, 'output', 'orbitals', fmt)
 
-def write_support_functions_on_disk(inp,format='binary',matrices=True,coefficients=False):
+
+def write_support_functions_on_disk(inp, format='binary', matrices=True,
+                                    coefficients=False):
     pass
 
-def write_support_function_matrices(inp,format='text'):
+
+def write_support_function_matrices(inp, format='text'):
     """
     Write the matrices of the linear scaling formats.
 
     Args:
-       format (str): The format to write the orbitals with. Accepts the strings:
+       format (str): The format to write the orbitals with. Accepts the
+         strings:
           * 'binary'
           * 'text'
 
     Todo:
        Verify if the binary format is available and set the appropriate values
     """
-    fmt=0
+    fmt = 0
     if format == 'text':
-        fmt=1
+        fmt = 1
     elif format == 'binary':
-        fmt=4
-    __set__(inp,'lin_general','output_mat',fmt)
+        fmt = 4
+    __set__(inp, 'lin_general', 'output_mat', fmt)
 
-def set_atomic_positions(inp,posinp=None):
+
+def set_atomic_positions(inp, posinp=None):
     """
     Insert the atomic positions as a part of the input dictionary
     """
-    __set__(inp,'posinp',posinp)
+    __set__(inp, 'posinp', posinp)
+
 
 def read_orbitals_from_disk(inp):
     """
     Read the orbitals from data directory, if available
     """
-    newid=2
-    previous_ipid=inp.get('dft','False')
-    if previous_ipid: previous_ipid=inp.get('inputpsiid','False')
-    if previous_ipid == 'linear' or previous_ipid==100: newid=102
-    __set__(inp,'dft','inputpsiid',newid)
+    newid = 2
+    previous_ipid = inp.get('dft', 'False')
+    if previous_ipid:
+        previous_ipid = inp.get('inputpsiid', 'False')
+    if previous_ipid == 'linear' or previous_ipid == 100:
+        newid = 102
+    __set__(inp, 'dft', 'inputpsiid', newid)
+
 
 def set_random_inputguess(inp):
     """
     Input orbitals are initialized as random coefficients
     """
-    __set__(inp,'dft','inputpsiid',-2)
+    __set__(inp, 'dft', 'inputpsiid', -2)
 
-def set_electronic_temperature(inp,kT=1.e-3,T=0):
+
+def set_electronic_temperature(inp, kT=1.e-3, T=0):
     """
     Define the electronic temperature, in AU (``kT``) or K (``T``)
     """
-    TtokT=8.617343e-5/27.21138505
-    tel= TtoKT*T if T != 0 else kT
-    __set__(inp,'mix','tel',tel)
+    TtokT = 8.617343e-5/27.21138505
+    tel = TtokT*T if T != 0 else kT
+    __set__(inp, 'mix', 'tel', tel)
 
-def optimize_geometry(inp,method='FIRE',nsteps=50):
+
+def optimize_geometry(inp, method='FIRE', nsteps=50):
     """
     Optimize the geometry of the system
 
@@ -353,16 +414,20 @@ def optimize_geometry(inp,method='FIRE',nsteps=50):
           * VSSD:   Variable Stepsize Steepest Descent method
           * LBFGS:  Limited-memory BFGS
           * BFGS:   Broyden-Fletcher-Goldfarb-Shanno
-          * PBFGS:  Same as BFGS with an initial Hessian obtained from a force field
+          * PBFGS:  Same as BFGS with an initial Hessian obtained from a force
+                    field
           * DIIS:   Direct inversion of iterative subspace
-          * FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.
-          * SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
+          * FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et
+                    al.
+          * SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by
+                    SQNM in future release
           * SQNM:   Stabilized quasi-Newton minimzer
     """
-    __set__(inp,'geopt','method',method)
-    __set__(inp,'geopt','ncount_cluster_x',nsteps)
+    __set__(inp, 'geopt', 'method', method)
+    __set__(inp, 'geopt', 'ncount_cluster_x', nsteps)
 
-def set_xc(inp,xc='PBE'):
+
+def set_xc(inp, xc='PBE'):
     """
     Set the exchange and correlation approximation
 
@@ -372,46 +437,53 @@ def set_xc(inp,xc='PBE'):
     Todo:
        Insert the XC codes corresponding to ``libXC`` conventions
     """
-    __set__(inp,'dft','ixc',xc)
+    __set__(inp, 'dft', 'ixc', xc)
+
 
 def write_density_on_disk(inp):
     """
     Write the charge density on the disk after the last SCF convergence
     """
-    __set__(inp,'dft','output_denspot',21)
+    __set__(inp, 'dft', 'output_denspot', 21)
+
 
 def use_gpu_acceleration(inp):
     """
     Employ gpu acceleration when available, for convolutions and Fock operator
 
     Todo:
-       Verify what happens when only one of the functionality is enabled at compile-time
+       Verify what happens when only one of the functionality is enabled at
+       compile-time
     """
-    __set__(inp,'perf','accel','OCLGPU')
-    __set__(inp,'psolver','setup','accel','CUDA')
+    __set__(inp, 'perf', 'accel', 'OCLGPU')
+    __set__(inp, 'psolver', 'setup', 'accel', 'CUDA')
 
 
-
-def set_wavefunction_iterations(inp,nit=[50,1]):
+def set_wavefunction_iterations(inp, nit=[50, 1]):
     """
     Set the number of the iteration per loop
 
     Args:
-       nit (int,list): integer of the number of iterations. Might be a scalar or a list, up to length two.
-            The first element of the list contains the number of iterations of the direct minimization loop.
-            if ``nit`` is a scalar, only this contribution is taken into account.
-            The second element is the number of subspace iterations where the hamiltonian is diagonalized in the
-            subspace.
+       nit (int,list): integer of the number of iterations. Might be a scalar
+            or a list, up to length two. The first element of the list contains
+            the number of iterations of the direct minimization loop. if
+            ``nit`` is a scalar, only this contribution is taken into account.
+            The second element is the number of subspace iterations where the
+            hamiltonian is diagonalized in the subspace.
     """
     try:
-        nlen=len(nit)
-    except:
-        nlen=0
-    if nlen >= 1: __set__(inp,'dft','itermax',nit[0])
-    if nlen == 2: __set__(inp,'dft','nrepmax',nit[1])
-    if nlen == 0: __set__(inp,'dft','itermax',nit)
+        nlen = len(nit)
+    except TypeError:
+        nlen = 0
+    if nlen >= 1:
+        __set__(inp, 'dft', 'itermax', nit[0])
+    if nlen == 2:
+        __set__(inp, 'dft', 'nrepmax', nit[1])
+    if nlen == 0:
+        __set__(inp, 'dft', 'itermax', nit)
 
-def change_data_directory(inp,name=''):
+
+def change_data_directory(inp, name=''):
     """
     Modify the name of the ``data-`` directory.
     Useful to grab the orbitals from another directory than the run name
@@ -419,46 +491,55 @@ def change_data_directory(inp,name=''):
     Args:
        name (str): the name of the run
     """
-    __set__(inp,'radical',name)
+    __set__(inp, 'radical', name)
 
-def calculate_tddft_coupling_matrix(inp,tda=False,rpa=True,fxc=True):
+
+def calculate_tddft_coupling_matrix(inp, tda=False, rpa=True, fxc=True):
     """
     Perform a Casida TDDFT coupling matrix extraction.
 
     Args:
-       tda (bool): when ``True``, Tamm-Dancoff approximation is used for the extraction of the coupling matrix
-       rpa (bool): when ``False``, the calculation of the RPA term (the linear response of the hartree potential) is switched off
-       fxc (bool): when ``False``, the calculation of the fxc term (the linear response of the XC operator) is switched off.
+       tda (bool): when ``True``, Tamm-Dancoff approximation is used for the
+         extraction of the coupling matrix
+       rpa (bool): when ``False``, the calculation of the RPA term (the linear
+         response of the hartree potential) is switched off
+       fxc (bool): when ``False``, the calculation of the fxc term (the linear
+         response of the XC operator) is switched off.
 
     Note:
-       The arguments ``fxc`` and ``rpa`` should not be simultaneously ``False``.
+       The arguments ``fxc`` and ``rpa`` should not be simultaneously
+       ``False``.
 
     Warning:
-       Presently the LR-TDDFT casida fxc is only available for LDA functionals in ABINIT flavour.
+       Presently the LR-TDDFT casida fxc is only available for LDA
+       functionals in ABINIT flavour.
     """
-    approach='TDA' if tda else 'full'
-    __set__(inp,'tddft','tddft_approach',approach)
+    approach = 'TDA' if tda else 'full'
+    __set__(inp, 'tddft', 'tddft_approach', approach)
     if rpa and fxc:
-        output='complete'
+        output = 'complete'
     elif rpa:
-        output='rpa'
+        output = 'rpa'
     else:
-        output='fxc'
-    __set__(inp,'output','coupling_matrix',output)
+        output = 'fxc'
+    __set__(inp, 'output', 'coupling_matrix', output)
 
-def extract_virtual_states(inp,nvirt,davidson=False):
+
+def extract_virtual_states(inp, nvirt, davidson=False):
     """
     Extract a given number of empty states **after** the scf cycle.
 
     Args:
-       davidson (bool): If set to ``True`` activates davidson calculation, otherwise Trace Minimization of the Hamiltonian is employed.
+       davidson (bool): If set to ``True`` activates davidson calculation,
+       otherwise Trace Minimization of the Hamiltonian is employed.
     """
-    nv=nvirt if davidson else -nvirt
-    __set__(inp,'dft','norbv',nv)
-    __set__(inp,'dft','nvirt',nvirt)
-    __set__(inp,'dft','itermax_virt',150)
+    nv = nvirt if davidson else -nvirt
+    __set__(inp, 'dft', 'norbv', nv)
+    __set__(inp, 'dft', 'nvirt', nvirt)
+    __set__(inp, 'dft', 'itermax_virt', 150)
 
-def connect_run_data(inp,log=None):
+
+def connect_run_data(inp, log=None):
     """
     Associate the data of the run of a given logfile to the input
     by retrieving the data directory name of the logfile.
@@ -468,10 +549,11 @@ def connect_run_data(inp,log=None):
 
     """
     if log is None:
-        change_data_directory(inp) #no effect
+        change_data_directory(inp)  # no effect
     else:
-        ll=log if len(log)==0 else log[0]
-        change_data_directory(inp,ll.log['radical'])
+        ll = log if len(log) == 0 else log[0]
+        change_data_directory(inp, ll.log['radical'])
+
 
 def calculate_dipole(inp):
     """
@@ -481,4 +563,4 @@ def calculate_dipole(inp):
       This function is useful for the linear scaling setup as the cubic
       scaling approach always calculates the charge density multipoles.
     """
-    __set__(inp,'lin_general','calc_dipole',True)
+    __set__(inp, 'lin_general', 'calc_dipole', True)

@@ -34,6 +34,40 @@ def nzion(sym):
     return _nzion[sym]
 
 
+def atomic_number(sym):
+    """
+    Returns the atomic number associated with the given symbol.
+
+    Args:
+      sym (str): the atomic symbol of this atom.
+
+    Returns:
+      (int): the atomic number
+    """
+    return _atomic_number[sym]
+
+
+def number_to_symbol(number):
+    """
+    Returns the symbol of atoms with a given atomic number.
+
+    Args:
+      number (int): the atomic number to lookup.
+
+    Returns:
+      (str): the atomic symbol with the given number.
+    """
+    return [x for x in _atomic_number if _atomic_number[x] == number][0]
+
+
+_atomic_number = {"H": 1, "He": 2,
+                  "Li": 3, "Be": 4, "B": 5, "C": 6,
+                  "N": 7, "O": 8, "F": 9, "Ne": 10,
+                  "Na": 11, "Mg": 12, "Al": 13, "Si": 14,
+                  "P": 15, "S": 16, "Cl": 17, "Ar": 18,
+                  "Cu": 29, "Zn": 30}
+
+
 _nzion = {"H":  1.0, "He": 2.0,
           "Li": 1.0, "Be": 2.0, "B":  3.0, "C":  4.0,
           "N": 5.0, "O": 6.0, "F":  7.0, "Ne": 8.0,
@@ -63,6 +97,13 @@ class Atom(MutableMapping):
     def __init__(self, *args, **kwargs):
         self.store = dict()
         self.update(dict(*args, **kwargs))
+
+    @property
+    def atomic_number(self):
+        """
+        The atomic number of this atom.
+        """
+        return atomic_number(self.sym)
 
     def dict(self):
         """
@@ -122,7 +163,8 @@ class Atom(MutableMapping):
         Given another atom or a dictionary, this sets the multipole related
         values of this with those values.
 
-        Todo: arrive at a standard that avoids having to do the charge
+        Todo:
+          Arrive at a standard that avoids having to do the charge
           correction here.
 
         Args:
@@ -165,6 +207,16 @@ class Atom(MutableMapping):
         if sym == 'r':
             sym = self.store['sym']
         return sym
+
+    @sym.setter
+    def sym(self, v):
+        if 'sym' in self.store:
+            self.store['sym'] = v
+        else:
+            sym = self.sym
+            val = self.store[sym]
+            del self[sym]
+            self[v] = val
 
     def get_position(self, units="bohr"):
         """
