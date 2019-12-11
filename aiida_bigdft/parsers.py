@@ -11,6 +11,7 @@ from aiida.engine import ExitCode
 from aiida.parsers.parser import Parser
 from aiida.plugins import CalculationFactory
 from aiida.plugins import DataFactory
+from aiida.common.exceptions import ValidationError
 
 from BigDFT import Logfiles
 
@@ -61,10 +62,15 @@ class BigDFTParser(Parser):
         self.logger.info("Parsing '{}'".format(output_filename))
 #        print(self.retrieved._repository._get_base_folder().get_abs_path(output_filename))
         output = BigDFTLogfile(self.retrieved._repository._get_base_folder().get_abs_path(output_filename))
-        output.store()
+        #this key is generated as a datetime, and aiida fails to serialize it.
+        output.logfile['Timestamp of this run']=output.logfile['Timestamp of this run'].strftime("%Y-%m-%d %H:%M:%S.%f")
+        try:
+          output.store()
+        except ValidationError:
+          self.logger.info("Impossible to store LogFile - ignoring '{}'".format(output_filename))
+
 #        with self.retrieved.open(output_filename, 'rb') as handle:
 #            output_node = SinglefileData(file=handle)
-#        print(output_dict)
 #        output_dict_aiida=orm.Dict(dict=output_dict)
 #        output_dict_aiida.store()
 #        output_log_aiida=BigDFTLogfile(output)

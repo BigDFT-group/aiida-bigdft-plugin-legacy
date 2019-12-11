@@ -77,7 +77,7 @@ class BigDFTCalculation(CalcJob):
             else:
               posinp_filename = self.inputs.metadata.options.jobname+".xyz"
 #            bigdft_calc.update_global_options(units="angstroem")
-            posinp_file = open(posinp_filename,"w") 
+            posinp_file = open(posinp_filename,"wb") 
 
             posinp_file.write(posinp_string)
             posinp_file.close()
