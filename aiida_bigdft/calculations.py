@@ -42,7 +42,8 @@ class BigDFTCalculation(CalcJob):
         spec.input('parameters', valid_type=BigDFTParameters, help='Command line parameters for BigDFT')
         spec.input('structure', valid_type=orm.StructureData, help='StructureData struct')
         spec.input('structurefile', valid_type=orm.Str, help='xyz file', default=orm.Str(cls._POSINP_FILE_NAME))
-        spec.input('pseudos', valid_type=List, help='')
+        spec.input('pseudos', valid_type=List, help='', default=List())
+        spec.input('extra_retrieved_files', valid_type=List, help='', default=List())
         spec.output('bigdft_logfile', valid_type=BigDFTLogfile, help='')
         spec.exit_code(100, 'ERROR_MISSING_OUTPUT_FILES', message='Calculation did not produce all expected output files.')
 
@@ -113,8 +114,6 @@ class BigDFTCalculation(CalcJob):
         timefile = self._TIMING_FILE_NAME
         if self.inputs.metadata.options.jobname is not None:
             outfile = "log-"+self.inputs.metadata.options.jobname+".yaml"
-            print (self.inputs.metadata.options.output_filename)
-            print (self.inputs.metadata.options.output_filename)
             timefile = "time-"+self.inputs.metadata.options.jobname+".yaml"
 
 #        codeinfo.stdout_name = outfile
@@ -126,5 +125,10 @@ class BigDFTCalculation(CalcJob):
         calcinfo = datastructures.CalcInfo()
         calcinfo.codes_info = [codeinfo]
         calcinfo.local_copy_list = local_copy_list
-        calcinfo.retrieve_list = [outfile, timefile]
+        calcinfo.retrieve_list = [outfile, 
+                                  timefile,
+                                  "forces*", 
+                                  "final*", 
+                                  ["./debug/bigdft-err*", ".", 2]]
+        calcinfo.retrieve_list.extend(self.inputs.extra_retrieved_files)
         return calcinfo

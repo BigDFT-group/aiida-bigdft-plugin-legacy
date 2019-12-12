@@ -17,28 +17,51 @@ code = helpers.get_code(entry_point='bigdft', computer=computer)
 # Prepare input parameters
 BigDFTParameters = DataFactory('bigdft')
 parameters = BigDFTParameters({'ignore-case': True})
+StructureData = DataFactory('structure')
 
-SinglefileData = DataFactory('singlefile')
-file1 = SinglefileData(
-    file=os.path.join(tests.TEST_DIR, "input_files", 'file1.txt'))
-file2 = SinglefileData(
-    file=os.path.join(tests.TEST_DIR, "input_files", 'file2.txt'))
+
+# TiO2 cubic structure
+alat = 4. # angstrom
+cell = [[alat, 0., 0.,],
+[0., alat, 0.,],
+[0., 0., alat,],
+   ]
+s = StructureData(cell=cell)
+s.append_atom(position=(alat/2.,alat/2.,alat/2.),symbols='Ti')
+s.append_atom(position=(alat/2.,alat/2.,0.),symbols='O')
+s.append_atom(position=(alat/2.,0.,alat/2.),symbols='O')
 
 # set up calculation
 inputs = {
     'code': code,
-    'parameters': parameters,
-    'file1': file1,
-    'file2': file2,
+    'structure': s,
     'metadata': {
         'description': "Test job submission with the aiida_bigdft plugin",
+        'options' : {
+            'jobname': 'TiO2',
+            'max_wallclock_seconds': 30 * 60
+        }
     },
 }
 
+bigdft_parameters = {}
+bigdft_parameters["dft"] = { "ixc": "LDA", "itermax": "5" }
+bigdft_parameters["output"] = { 'orbitals': 'binary' } 
+inputs['parameters'] = BigDFTParameters(dict=bigdft_parameters)
+
+inputs['extra_retrieved_files'] = List()
+inputs['extra_retrieved_files'].set_list([["./data*/*", ".", 2]])
 # Note: in order to submit your calculation to the aiida daemon, do:
 # from aiida.engine import submit
 # future = submit(CalculationFactory('bigdft'), **inputs)
 result = run(CalculationFactory('bigdft'), **inputs)
 
-computed_BigDFT = result['bigdft'].get_content()
-print("Computed BigDFT between files: \n{}".format(computed_BigDFT))
+#get a dict from the Yaml outputfile, which was stored as a result.
+BigDFT_logfile = result['bigdft_logfile'].logfile
+
+#for extra retrieved_files
+data_folder = result['retrieved']
+
+print (BigDFT_logfile['Energy (Hartree)'])
+print (BigDFT_logfile['Walltime since initialization'])
+
