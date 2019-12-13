@@ -22,6 +22,18 @@ from BigDFT import Inputfiles as BigDFT_files
 BigDFTParameters = DataFactory('bigdft')
 BigDFTLogfile = DataFactory('bigdft_logfile')
 
+#just override SystemCalculator constructor to avoid checking BIGDFT_ROOT variable
+class PluginSystemCalculator(BigDFT_calc.SystemCalculator):
+    def __init__(self,
+                 omp=os.environ.get('OMP_NUM_THREADS', '1'),
+                 mpi_run=os.environ.get('BIGDFT_MPIRUN', ''),
+                 dry_run=False, skip=False, verbose=True):
+        # Use the initialization from the Runner class (so all options inside
+        # __global_options)
+        BigDFT_calc.Runner.__init__(self, omp=str(omp), mpi_run=mpi_run,
+                        dry_run=dry_run, skip=skip, verbose=verbose)
+        self.command = ""
+
 class BigDFTCalculation(CalcJob):
     """
     AiiDA calculation plugin wrapping the BigDFT python interface.
@@ -67,7 +79,7 @@ class BigDFTCalculation(CalcJob):
         dico = BigDFT_files.Inputfile()
         dico.update( self.inputs.parameters.dict)
 
-        bigdft_calc=BigDFT_calc.SystemCalculator()
+        bigdft_calc=PluginSystemCalculator()
 
         posinp_filename=self.inputs.structurefile.value
         if self.inputs.structure is not None:
