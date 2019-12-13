@@ -87,7 +87,7 @@ class BigDFTParameters(Data):
 
         """
         string = super(BigDFTParameters, self).__str__()
-        string += "\n" + str(self.get_dict())
+        string += "\n" + str(self.get_attribute('dict'))
         return string
         
         
@@ -116,3 +116,16 @@ class BigDFTLogfile(Data):
         :raise ValueError:
         """
         self.set_attribute('logfile',  Logfiles.Logfile(path).log)
+        
+    def __str__(self):
+        """String representation of node.
+
+        Append values of dictionary to usual representation. E.g.::
+
+            uuid: b416cbee-24e8-47a8-8c11-6d668770158b (pk: 590)
+            {'ignore-case': True}
+
+        """
+        string = super(BigDFTLogfile, self).__str__()
+        string += "\n" + str(self.get_attribute('logfile'))
+        return string

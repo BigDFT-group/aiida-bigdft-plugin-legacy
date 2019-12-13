@@ -1,1 +1,2 @@
+recursive-include aiida_bigdft/ *.py
 include setup.json

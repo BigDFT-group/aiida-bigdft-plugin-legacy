@@ -2,11 +2,21 @@
 
 from __future__ import absolute_import
 from setuptools import setup, find_packages
+import os
 import json
-
+import sys
 if __name__ == '__main__':
     # Provide static information in setup.json
     # such that it can be discovered automatically
+    # create symlinks to subdirectories for easier use
+    try:
+      os.symlink('aiida_bigdft/PyBigDFT/BigDFT/', 'BigDFT')
+    except:
+      pass
+    try:
+      os.symlink('aiida_bigdft/futile/src/python/futile/','futile')
+    except:
+      pass
     with open('setup.json', 'r') as info:
         kwargs = json.load(info)
     setup(
