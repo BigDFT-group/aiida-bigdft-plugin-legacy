@@ -5,7 +5,8 @@
 
 # aiida-bigdft
 
-Aiida plugin for BigDFT code
+Aiida plugin for BigDFT code.
+This is a simple plugin to integrate bigdft computation in an AiiDA workflow. Input file is generated using PyBigDFT tools, and output is returned as a dict, using the LogFile feature of PyBigDFT. Both futile and PyBigDFT are included in this plugin, BigDFT itself is not needed.
 
 This plugin is the default output of the 
 [AiiDA plugin cutter](https://github.com/aiidateam/aiida-plugin-cutter),
@@ -13,32 +14,38 @@ intended to help developers get started with their AiiDA plugins.
 
 ## Features
 
- * Add input files using `SinglefileData`:
-   ```python
-   SinglefileData = DataFactory('singlefile')
-   inputs['file1'] = SinglefileData(file='/path/to/file1')
-   inputs['file2'] = SinglefileData(file='/path/to/file2')
-   ```
-
- * Specify command line options via a python dictionary and `BigDFTParameters`:
+ * Create input files and specify command line options via a python dictionary and `BigDFTParameters`:
    ```python
    d = { 'ignore-case': True }
    BigDFTParameters = DataFactory('bigdft')
-   inputs['parameters'] = BigDFTParameters(dict=d)
+   bigdft_parameters = {}
+   bigdft_parameters["dft"] = { "ixc": "LDA", "itermax": "5" }
+   bigdft_parameters["output"] = { 'orbitals': 'binary' } 
+   inputs['parameters'] = BigDFTParameters(dict=bigdft_parameters)
    ```
 
- * `BigDFTParameters` dictionaries are validated using [voluptuous](https://github.com/alecthomas/voluptuous).
-   Find out about supported options:
+ * Run computation and retrieve output files (by default : logfile, time.yaml, forces, can be extended to retrieve any geenrated file):
    ```python
-   BigDFTParameters = DataFactory('bigdft')
-   print(BigDFTParameters.schema.schema)
+   inputs['extra_retrieved_files'] = List()
+   inputs['extra_retrieved_files'].set_list([["./data*/*", ".", 2]])
+   result = run(CalculationFactory('bigdft'), **inputs)
+   #or asynchronously
+   future = submit(CalculationFactory('bigdft'), **inputs)
    ```
 
+ * load back YAML logfile and turn it into a python dict (through PyBigDFT utilities) to analyze results
+   ```python
+   #only if run asynchronously, load results from database first after completion
+   result=load_node(future.pk).outputs
+   
+   logfile = result['bigdft_logfile'].logfile
+   print (logfile['Energy (Hartree)'])
+   ```
 ## Installation
 
 ```shell
 pip install aiida-bigdft
-verdi quicksetup  # better to set up a new profile
+verdi quicksetup  # better to set up a new profile, or run reentry scan
 verdi plugin list aiida.calculations  # should now show your calclulation plugins
 ```
 

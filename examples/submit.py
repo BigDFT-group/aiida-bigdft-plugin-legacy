@@ -16,7 +16,6 @@ code = helpers.get_code(entry_point='bigdft', computer=computer)
 
 # Prepare input parameters
 BigDFTParameters = DataFactory('bigdft')
-parameters = BigDFTParameters({'ignore-case': True})
 StructureData = DataFactory('structure')
 
 
