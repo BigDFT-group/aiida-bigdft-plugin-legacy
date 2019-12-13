@@ -20,7 +20,7 @@ if __name__ == '__main__':
     with open('setup.json', 'r') as info:
         kwargs = json.load(info)
     setup(
-        packages=find_packages(),
+        packages=find_packages(exclude=["*.pyc", "aiida_bigdft/futile", "aiida_bigdft/PyBigDFT"]),
         # this doesn't work when placed in setup.json (something to do with str type)
         package_data={
             "": ["*"],
