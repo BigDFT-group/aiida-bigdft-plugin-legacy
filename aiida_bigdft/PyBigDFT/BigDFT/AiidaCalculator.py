@@ -1,4 +1,4 @@
-from Calculators import SystemCalculator, Runner
+from BigDFT.Calculators import SystemCalculator, Runner
 from futile.Utils import write as safe_print
 from futile.Utils import dict_merge
 
