@@ -53,9 +53,9 @@ class BigDFTCalculation(CalcJob):
         spec.input('metadata.options.jobname', valid_type=six.string_types)
         spec.input('parameters', valid_type=BigDFTParameters, help='Command line parameters for BigDFT')
         spec.input('structure', valid_type=orm.StructureData, help='StructureData struct')
-        spec.input('structurefile', valid_type=orm.Str, help='xyz file', default=orm.Str(cls._POSINP_FILE_NAME))
-        spec.input('pseudos', valid_type=List, help='', default=List())
-        spec.input('extra_retrieved_files', valid_type=List, help='', default=List())
+        spec.input('structurefile', valid_type=orm.Str, help='xyz file', default=lambda: orm.Str(cls._POSINP_FILE_NAME))
+        spec.input('pseudos', valid_type=List, help='', default=lambda: List())
+        spec.input('extra_retrieved_files', valid_type=List, help='', default=lambda: List())
         spec.output('bigdft_logfile', valid_type=BigDFTLogfile, help='')
         spec.exit_code(100, 'ERROR_MISSING_OUTPUT_FILES', message='Calculation did not produce all expected output files.')
 
@@ -85,7 +85,7 @@ class BigDFTCalculation(CalcJob):
         if self.inputs.structure is not None:
             print("writing input posinp file")
             posinp_string = self.inputs.structure._prepare_xyz()[0]
-            if self.inputs.metadata.options.jobname is None:
+            if "jobname" not in self.inputs.metadata.options:
               posinp_filename = self._POSINP_FILE_NAME
             else:
               posinp_filename = self.inputs.metadata.options.jobname+".xyz"
@@ -108,12 +108,12 @@ class BigDFTCalculation(CalcJob):
 
         #generate yaml input file from dict and whatever
 
-        if self.inputs.metadata.options.jobname is not None:
+        if "jobname" in self.inputs.metadata.options:
             bigdft_calc.update_global_options(name=self.inputs.metadata.options.jobname)
 
         bigdft_calc._run_options(input=dico)
         bigdft_calc.pre_processing()
-        if self.inputs.metadata.options.jobname is None:
+        if "jobname" not in self.inputs.metadata.options:
             input_filename = self._INPUT_FILE_NAME
         else:
             input_filename = self.inputs.metadata.options.jobname+".yaml"
@@ -124,13 +124,13 @@ class BigDFTCalculation(CalcJob):
         codeinfo.code_uuid = self.inputs.code.uuid
         outfile = self.inputs.metadata.options.output_filename
         timefile = self._TIMING_FILE_NAME
-        if self.inputs.metadata.options.jobname is not None:
+        if "jobname" in self.inputs.metadata.options:
             outfile = "log-"+self.inputs.metadata.options.jobname+".yaml"
             timefile = "time-"+self.inputs.metadata.options.jobname+".yaml"
 
 #        codeinfo.stdout_name = outfile
         codeinfo.withmpi = self.inputs.metadata.options.withmpi
-        if self.inputs.metadata.options.jobname is not None:
+        if "jobname" in self.inputs.metadata.options:
             codeinfo.cmdline_params = ["--name="+self.inputs.metadata.options.jobname]
         #local_copy_list = []
         # Prepare a `CalcInfo` to be returned to the engine
