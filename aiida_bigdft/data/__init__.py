@@ -8,9 +8,8 @@ Register data types via the "aiida.data" entry point in setup.json.
 # You can directly use or subclass aiida.orm.data.Data
 # or any other data type listed under 'verdi data'
 from __future__ import absolute_import
-from aiida.orm import Dict
 from aiida.orm.nodes import Data
-from voluptuous import Schema, Optional
+from voluptuous import Optional
 
 from BigDFT import Logfiles
 
@@ -28,7 +27,7 @@ class BigDFTParameters(Data):
     """
     Command line options for BigDFT.
 
-    This class represents a python dictionary used to 
+    This class represents a python dictionary used to
     pass command line options to the executable.
     """
 
@@ -46,7 +45,10 @@ class BigDFTParameters(Data):
         """
 #        dict = self.validate(dict)
         super(BigDFTParameters, self).__init__(**kwargs)
-        self.set_attribute('dict',  dict)
+        self.set_attribute('dict', dict)
+
+    def set_dict(self, dict):
+        self.set_attribute('dict', dict)
 
     @property
     def dict(self):
@@ -54,7 +56,7 @@ class BigDFTParameters(Data):
         Return the Logfile
         """
         return self.get_attribute('dict')
-        
+
     def cmdline_params(self, file1_name, file2_name):
         """Synthesize command line parameters.
 
@@ -66,16 +68,6 @@ class BigDFTParameters(Data):
         :param type file_name2: str
 
         """
-#        parameters = []
-
-#        pm_dict = self.get_dict()
-#        for k in pm_dict.keys():
-#            if pm_dict[k]:
-#                parameters += ['--' + k]
-
-#        parameters += [file1_name, file2_name]
-
-#        return [str(p) for p in parameters]
 
     def __str__(self):
         """String representation of node.
@@ -89,17 +81,17 @@ class BigDFTParameters(Data):
         string = super(BigDFTParameters, self).__str__()
         string += "\n" + str(self.get_attribute('dict'))
         return string
-        
-        
+
+
 class BigDFTLogfile(Data):
     """
-    Wrapper around a Logfile object 
+    Wrapper around a Logfile object
 
     This class represents a BigDFT Logfile object.
     """
     def __init__(self, path=None, **kwargs):
         super(BigDFTLogfile, self).__init__(**kwargs)
-        self.set_attribute('logfile',  Logfiles.Logfile(path).log)
+        self.logfile = path
 
     @property
     def logfile(self):
@@ -109,14 +101,29 @@ class BigDFTLogfile(Data):
         return self.get_attribute('logfile')
 
     @logfile.setter
-    def logfile(self,path):
+    def logfile(self, path):
         """
         Set the logfile
 
         :raise ValueError:
         """
-        self.set_attribute('logfile',  Logfiles.Logfile(path).log)
-        
+        self.bigdftlogfile = Logfiles.Logfile(path)
+        # replace forbidden chars in aiida dicts.
+        if len(self.bigdftlogfile) > 0:
+            logs = []
+            for log in self.bigdftlogfile:
+                try:
+                    log.log['Timestamp of this run'] = \
+                        log.log['Timestamp of this run'].strftime("%Y-%m-%d %H:%M:%S.%f")
+                    logs.append(log.log)
+                except KeyError:
+                    pass
+            self.set_attribute('logfile', logs)
+        else:
+            self.bigdftlogfile.log['Timestamp of this run'] = \
+                self.bigdftlogfile.log['Timestamp of this run'].strftime("%Y-%m-%d %H:%M:%S.%f")
+            self.set_attribute('logfile', self.bigdftlogfile.log)
+
     def __str__(self):
         """String representation of node.
 

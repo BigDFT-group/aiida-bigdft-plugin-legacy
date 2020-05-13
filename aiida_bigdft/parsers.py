@@ -6,17 +6,15 @@ Register parsers via the "aiida.parsers" entry point in setup.json.
 """
 from __future__ import absolute_import
 
-from aiida import orm
 from aiida.engine import ExitCode
 from aiida.parsers.parser import Parser
 from aiida.plugins import CalculationFactory
 from aiida.plugins import DataFactory
 from aiida.common.exceptions import ValidationError
 
-from BigDFT import Logfiles
-
 BigDFTCalculation = CalculationFactory('bigdft')
 BigDFTLogfile = DataFactory('bigdft_logfile')
+
 
 class BigDFTParser(Parser):
     """
@@ -27,7 +25,8 @@ class BigDFTParser(Parser):
         """
         Initialize Parser instance
 
-        Checks that the ProcessNode being passed was produced by a BigDFTCalculation.
+        Checks that the ProcessNode being passed was produced
+        by a BigDFTCalculation.
 
         :param node: ProcessNode of calculation
         :param type node: :class:`aiida.orm.ProcessNode`
@@ -41,14 +40,13 @@ class BigDFTParser(Parser):
         """
         Parse outputs, store results in database.
 
-        :returns: an exit code, if parsing fails (or nothing if parsing succeeds)
+        :returns: an exit code, if parsing fails
+        (or nothing if parsing succeeds)
         """
-        from aiida.orm import SinglefileData
-
         output_filename = self.node.get_option('output_filename')
         jobname = self.node.get_option('jobname')
         if jobname is not None:
-            output_filename = "log-"+jobname+".yaml"
+            output_filename = "log-" + jobname + ".yaml"
         # Check that folder content is as expected
         files_retrieved = self.retrieved.list_object_names()
         files_expected = [output_filename]
@@ -61,13 +59,13 @@ class BigDFTParser(Parser):
         # add output file
         self.logger.info("Parsing '{}'".format(output_filename))
 #        print(self.retrieved._repository._get_base_folder().get_abs_path(output_filename))
-        output = BigDFTLogfile(self.retrieved._repository._get_base_folder().get_abs_path(output_filename))
-        #this key is generated as a datetime, and aiida fails to serialize it.
-        output.logfile['Timestamp of this run']=output.logfile['Timestamp of this run'].strftime("%Y-%m-%d %H:%M:%S.%f")
+        output = BigDFTLogfile(self.retrieved._repository._get_base_folder().
+                               get_abs_path(output_filename))
         try:
-          output.store()
+            output.store()
         except ValidationError:
-          self.logger.info("Impossible to store LogFile - ignoring '{}'".format(output_filename))
+            self.logger.info("Impossible to store LogFile - ignoring '{}'".
+                             format(output_filename))
 
 #        with self.retrieved.open(output_filename, 'rb') as handle:
 #            output_node = SinglefileData(file=handle)
