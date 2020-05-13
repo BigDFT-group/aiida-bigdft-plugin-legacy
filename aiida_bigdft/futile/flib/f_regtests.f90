@@ -7,7 +7,7 @@ module f_regtests
      module procedure compare_ai, compare_af, compare_ad
   end interface compare
 
-  public :: run, compare, verify
+  public :: run, compare, verify, ensure_error
 contains
   subroutine run(func)
     use yaml_output
@@ -47,6 +47,28 @@ contains
 
     if (.not. val) call f_err_throw(label // ": failed")
   end subroutine verify
+
+  subroutine ensure_error(id, name)
+    use dictionaries
+    use yaml_strings
+    implicit none
+    integer, intent(in), optional :: id
+    character(len = *), intent(in), optional :: name
+
+    integer :: errid
+
+    if (.not. f_err_check(id, name)) then
+       if (present(name)) then
+          call f_err_throw("error " // name // " expected")
+       else if (present(id)) then
+          call f_err_throw("error (" // trim(yaml_toa(id)) // ") expected")
+       else
+          call f_err_throw("error expected")
+       end if
+    else
+       errid = f_err_pop(id, name)
+    end if
+  end subroutine ensure_error
   
   subroutine compare_l(val, expected, label)
     use dictionaries
@@ -73,22 +95,24 @@ contains
     include 'compare-scalar-inc.f90'
   end subroutine compare_i
 
-  subroutine compare_f(val, expected, label)
+  subroutine compare_f(val, expected, label, tol)
     use dictionaries
     use f_precisions, only: f_simple
     use yaml_strings
     implicit none
     real(f_simple), intent(in) :: val, expected
-    include 'compare-scalar-inc.f90'
+    real, intent(in), optional :: tol
+    include 'compare-tol-scalar-inc.f90'
   end subroutine compare_f
 
-  subroutine compare_d(val, expected, label)
+  subroutine compare_d(val, expected, label, tol)
     use dictionaries
     use f_precisions, only: f_double
     use yaml_strings
     implicit none
     real(f_double), intent(in) :: val, expected
-    include 'compare-scalar-inc.f90'
+    real, intent(in), optional :: tol
+    include 'compare-tol-scalar-inc.f90'
   end subroutine compare_d
 
   subroutine compare_s(val, expected, label)
@@ -108,21 +132,23 @@ contains
     include 'compare-array-inc.f90'
   end subroutine compare_ai
 
-  subroutine compare_af(val, expected, label)
+  subroutine compare_af(val, expected, label, tol)
     use dictionaries
     use f_precisions, only: f_simple
     use yaml_strings
     implicit none
     real(f_simple), dimension(:), intent(in) :: val, expected
-    include 'compare-array-inc.f90'
+    real, intent(in), optional :: tol
+    include 'compare-tol-array-inc.f90'
   end subroutine compare_af
 
-  subroutine compare_ad(val, expected, label)
+  subroutine compare_ad(val, expected, label, tol)
     use dictionaries
     use f_precisions, only: f_double
     use yaml_strings
     implicit none
     real(f_double), dimension(:), intent(in) :: val, expected
-    include 'compare-array-inc.f90'
+    real, intent(in), optional :: tol
+    include 'compare-tol-array-inc.f90'
   end subroutine compare_ad
 end module f_regtests

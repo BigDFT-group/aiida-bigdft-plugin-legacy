@@ -91,6 +91,7 @@ install-data-hook:
 	  ln -fs $(futile_dynamic_library) $(futile_library_soname) ; \
 	  ln -fs $(futile_library_soname) libfutile-1.so ; \
 	fi
+install-exec-hook:
 	if test -n "$(pymodule)" ; then \
 	  cd $(DESTDIR)$(pyexecdir) ; \
 	  chmod a+x $(pymodule) ; \

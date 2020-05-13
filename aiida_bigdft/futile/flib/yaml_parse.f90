@@ -217,6 +217,7 @@ contains
 
     !load the input variable definition
     dict=>yaml_load(string)
+    if (.not. associated(dict)) return
 
     if (dict_islist(dict)) then
        nullify(iter)
@@ -669,8 +670,12 @@ contains
 
     integer(kind = 8) :: parser
 
-    call yaml_parser_c_init_from_buf(parser, str, len_trim(str))
-    dict => yaml_parse_(parser)
+    if (len_trim(str) > 0) then
+       call yaml_parser_c_init_from_buf(parser, str, len_trim(str))
+       dict => yaml_parse_(parser)
+    else
+       nullify(dict)
+    end if
   end subroutine yaml_parse_from_string
 
   function yaml_parse_(parser) result(output)
@@ -912,12 +917,15 @@ contains
     !parse from the given string
     call yaml_parse_from_string(loaded_string,string)
 
-    !extract the first document
-    dict => loaded_string .pop. 0
+    if (associated(loaded_string)) then
+       !extract the first document
+       dict => loaded_string .pop. 0
+       call dict_free(loaded_string)
+    else
+       nullify(dict)
+    end if
 
-    call dict_free(loaded_string)
-
-    if (present(key)) then !to be defined better
+    if (present(key) .and. associated(dict)) then !to be defined better
        select case(dict_value(dict))
        case(TYPE_DICT,TYPE_LIST)
           call dict_init(test)

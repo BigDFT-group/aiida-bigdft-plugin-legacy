@@ -85,7 +85,7 @@ AC_DEFUN([AX_ACC_CUDA],
     fi
     AC_SUBST(NVCC_FLAGS)
     AC_MSG_RESULT([$NVCC_FLAGS])
-    LIBCUDA_LIBS="$ax_acc_cuda_libs"
+    LIBCUDA_LIBS="$ax_acc_cuda_libs -lstdc++"
     LDFLAGS="$LDFLAGS -L$ac_cuda_lib_path"
   fi
 

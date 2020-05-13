@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://gitlab.com/l_sim/futile.git
 	branch = devel
-	commit = 0cf5678d4dab335ccc3da5bf104722ff6edef893
-	parent = 68165cfc7a87186fea78f1ab2f62a4917f957f92
+	commit = a73f5601976bb18e6ffd2ad7e49425d530cf9c88
+	parent = 1b468105e8ab7d0a878a9985131312cd51ce4bf3
 	method = merge
 	cmdver = 0.4.0

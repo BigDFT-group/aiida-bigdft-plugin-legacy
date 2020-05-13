@@ -16,7 +16,7 @@ DH_VERBOSE = 1
 	dh $@ 
 
 override_dh_auto_configure:
-	dh_auto_configure -- FC=mpif90 --enable-dynamic-libraries
+	dh_auto_configure -- FC=mpif90 --enable-dynamic-libraries --enable-cuda-gpu NVCC_FLAGS="-O3 --compiler-options '-fno-strict-aliasing -fPIC'" --enable-opencl
 
 override_dh_auto_test:
 

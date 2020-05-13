@@ -12,6 +12,16 @@ stages:
   - package
   - deploy
 
+cuda-opencl:
+  stage: build
+  script:
+    - apt -y install nvidia-cuda-toolkit ocl-icd-opencl-dev 
+    - autoreconf -fi
+    - mkdir tmp
+    - cd tmp/
+    - ../configure FC=mpif90 FCFLAGS="-g -O2 -fbounds-check -fopenmp" --enable-cuda-gpu NVCC_FLAGS="-O3 --compiler-options '-fno-strict-aliasing'" --enable-opencl
+    - make -j$(nproc)
+
 parallel:
   stage: build
   script:
@@ -79,7 +89,7 @@ sphinx:
 debian:
   stage: package
   before_script:
-    - apt update && apt -y install debhelper fakeroot autoconf make libpython2.7-dev python-yaml python-numpy liblapack-dev libblas-dev gfortran libyaml-dev libopenmpi-dev
+    - apt update && apt -y install debhelper fakeroot autoconf make libpython2.7-dev python-yaml python-numpy liblapack-dev libblas-dev gfortran libyaml-dev libopenmpi-dev nvidia-cuda-toolkit ocl-icd-opencl-dev
   script:
     - tar -xf tmp/futile*.tar.bz2
     - cp tmp/futile-*.tar.bz2 $(echo $(ls tmp/futile-*.tar.bz2) | sed "s;tmp/futile-\(.*\).tar.bz2;futile_\1.orig.tar.bz2;")

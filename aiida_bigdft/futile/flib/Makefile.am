@@ -120,7 +120,7 @@ YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
 	yaml_map-mat-inc.f90 yaml_open-inc.f90
 GETADD_INCLUDES = getadd-c-inc.f90
 NOOMP_INCLUDES = remove_omp-inc.f90
-REGTESTS_INCLUDES = compare-scalar-inc.f90 compare-array-inc.f90
+REGTESTS_INCLUDES = compare-scalar-inc.f90 compare-array-inc.f90 compare-tol-scalar-inc.f90 compare-tol-array-inc.f90
 
 EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(F_MALLOC_INCLUDES) $(NOOMP_INCLUDES) $(GETADD_INCLUDES) $(REGTESTS_INCLUDES)
 
