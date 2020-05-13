@@ -26,6 +26,10 @@
         ],
         "aiida.cmdline.data": [
             "bigdft = aiida_bigdft.cli:data_cli"
+        ],
+        "aiida.workflows": [
+            "bigdft = aiida_bigdft.workflows.base:BigDFTBaseWorkChain",
+            "bigdft.relax = aiida_bigdft.workflows.relax:BigDFTRelaxWorkChain"
         ]
     },
     "include_package_data": true,
