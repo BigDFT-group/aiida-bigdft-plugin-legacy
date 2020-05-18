@@ -34,8 +34,8 @@ class BigDFTRelaxWorkChain(WorkChain):
         spec.input('relax.algo', valid_type=orm.Str,
                    default=lambda: orm.Str('FIRE'),
                    help='algorithm to use during relaxation')
-        spec.input('relax.energy_cutoff', valid_type=orm.Float,
-                   required=False, help='')
+        spec.input('relax.threshold_forces', valid_type=orm.Float,
+                   required=False, help='energy cutoff value, in ev/Ang')
         spec.input('relax.steps', valid_type=orm.Int, required=False,
                    default=lambda: orm.Int(50),
                    help='number of relaxation steps to perform.')
@@ -59,6 +59,10 @@ class BigDFTRelaxWorkChain(WorkChain):
         InputActions.optimize_geometry(inputdict,
                                        self.inputs.relax.algo.value,
                                        self.inputs.relax.steps.value)
+        if self.inputs.relax.threshold_forces is not None:
+            InputActions.dict_set(inputdict, 'geopt', 'forcemax',
+                                  self.inputs.relax.threshold_forces.value/0.52917721067121)
+
         self.ctx.inputs.bigdft.parameters = BigDFTParameters(dict=inputdict)
 
         # gather outputs
