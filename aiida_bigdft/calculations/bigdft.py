@@ -56,7 +56,7 @@ class BigDFTCalculation(CalcJob):
         spec.input('structurefile', valid_type=orm.Str, help='xyz file', default=lambda: orm.Str(cls._POSINP_FILE_NAME))
         spec.input('pseudos', valid_type=List, help='', default=lambda: List())
         spec.input('extra_retrieved_files', valid_type=List, help='', default=lambda: List())
-        spec.output('bigdft_logfile', valid_type=BigDFTLogfile, help='')
+        spec.output('bigdft_logfile', valid_type=BigDFTLogfile, help='BigDFT log file as a dict')
         spec.exit_code(100, 'ERROR_MISSING_OUTPUT_FILES', message='Calculation did not produce all expected output files.')
 
 

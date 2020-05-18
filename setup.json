@@ -19,7 +19,8 @@
             "bigdft_logfile = aiida_bigdft.data:BigDFTLogfile"
         ],
         "aiida.calculations": [
-            "bigdft = aiida_bigdft.calculations:BigDFTCalculation"
+            "bigdft = aiida_bigdft.calculations.bigdft:BigDFTCalculation",
+            "postscript = aiida_bigdft.calculations.postscript:ScriptCalculation"
         ],
         "aiida.parsers": [
             "bigdft = aiida_bigdft.parsers:BigDFTParser"

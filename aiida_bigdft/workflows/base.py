@@ -4,13 +4,13 @@ Basic wrapping workchain on a BigDFT computation.
 """
 from aiida.common.extendeddicts import AttributeDict
 from aiida.engine import BaseRestartWorkChain, process_handler, while_, ExitCode
-from aiida.plugins import CalculationFactory
+from aiida.plugins import CalculationFactory, DataFactory
 
 from aiida.engine.processes.workchains.utils import process_handler, ProcessHandlerReport
 
 from futile import YamlIO
 
-
+RemoteData = DataFactory('remote') 
 BigDFTCalculation = CalculationFactory('bigdft')
 
 class BigDFTBaseWorkChain(BaseRestartWorkChain):
@@ -31,12 +31,13 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
             cls.results,
         )
         spec.expose_outputs(BigDFTCalculation)
+        #this one needs to be optional to avoid being checked wrongly by the restartworkchain
+        spec.output('bigdft_calc_folder', valid_type=RemoteData, required=False)
         spec.exit_code(100, 'ERROR_INPUT',
                        message='BigDFT input error')
         spec.exit_code(200, 'ERROR_RUNTIME',
                        message='BigDFT runtime error')
 
-# TODO : read debug files and report errors. Restart when possible.
     @process_handler(priority=600)
     def check_debug_output(self, calculation):
         repo = calculation.outputs.retrieved._repository._get_base_folder()
@@ -50,22 +51,21 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
             jobname = self.ctx.inputs.metadata.options.jobname
         else:
             jobname = 'BigDFT job'
-        logs = []
         posout_list = debug_folder.get_content_list(pattern="bigdft-err*")
         for filename in posout_list:
-            log = YamlIO.load(debug_folder.get_abs_path(filename), doc_lists=True, safe_mode=True)
+            log = YamlIO.load(debug_folder.get_abs_path(filename))
             err = log[0].get('BIGDFT_INPUT_VARIABLES_ERROR')
             if err is not None:
                 self.report('{}<{}> input error : {} Id: {}'.
-                            format(jobname, calculation.pk, err['Message'], err['Id']))
+                            format(jobname, calculation.pk,
+                                   err['Message'], err['Id']))
                 return ProcessHandlerReport(True, ExitCode(100))
             err = log[0].get('BIGDFT_RUNTIME_ERROR')
             if err is not None:
                 self.report('{}<{}> runtime error : {} Id: {}'.
-                            format(jobname, calculation.pk, err['Message'], err['Id']))
+                            format(jobname, calculation.pk,
+                                   err['Message'], err['Id']))
                 return ProcessHandlerReport(True, ExitCode(200))
-
-
 
     @process_handler(priority=500)
     def finish(self, node):
@@ -85,6 +85,7 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
                                                             'bigdft'))
         # self.ctx.inputs.code = self.inputs.code
 
-
-
-    
+    def results(self):
+        calc = self.ctx.children[-1]
+        self.out('bigdft_calc_folder', calc.outputs.remote_folder)
+        super().results()
