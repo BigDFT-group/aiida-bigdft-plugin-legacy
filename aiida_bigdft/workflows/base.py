@@ -2,6 +2,7 @@
 Basic wrapping workchain on a BigDFT computation.
 
 """
+from aiida import orm
 from aiida.common.extendeddicts import AttributeDict
 from aiida.engine import BaseRestartWorkChain, process_handler, while_, ExitCode
 from aiida.plugins import CalculationFactory, DataFactory
@@ -21,7 +22,9 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
     def define(cls, spec):
         super(BigDFTBaseWorkChain, cls).define(spec)
         spec.expose_inputs(BigDFTCalculation, namespace='bigdft')
-        # spec.input('code', valid_type=orm.Code, help='The BigDFT code.')
+        spec.input('show_warnings', valid_type=orm.Bool,
+                   default=lambda: orm.Bool(True),
+                   help='turn the warnings on/off.')
         spec.outline(
             cls.setup,
             while_(cls.should_run_process)(
@@ -55,28 +58,43 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
         for filename in posout_list:
             log = YamlIO.load(debug_folder.get_abs_path(filename))
             err = log[0].get('BIGDFT_INPUT_VARIABLES_ERROR')
+            info = log[0].get('Additional Info')
             if err is not None:
-                self.report('{}<{}> input error : {} Id: {}'.
+                self.report('{}<{}> input error : {} Id: {}.\n\
+                            Additional Information : {}'.
                             format(jobname, calculation.pk,
                                    err['Message'], err['Id']))
+                if info is not None:
+                    self.report('Additional Info :', info)
                 return ProcessHandlerReport(True, ExitCode(100))
             err = log[0].get('BIGDFT_RUNTIME_ERROR')
             if err is not None:
                 self.report('{}<{}> runtime error : {} Id: {}'.
                             format(jobname, calculation.pk,
                                    err['Message'], err['Id']))
+                if info is not None:
+                    self.report('Additional Info :', info)
                 return ProcessHandlerReport(True, ExitCode(200))
 
+    @process_handler(priority=590)
+    def check_warnings(self, calculation):
+        if calculation.is_finished_ok and self.inputs.show_warnings:
+            warnings = calculation.outputs.bigdft_logfile.logfile.get('WARNINGS')
+            if warnings is not None:
+                self.report('Warnings were found :')
+                for warn in warnings:
+                    self.report(warn)
+
     @process_handler(priority=500)
-    def finish(self, node):
-        if node.is_finished_ok:
+    def finish(self, calculation):
+        if calculation.is_finished_ok:
             if self.ctx.inputs.metadata.options.jobname is not None:
                 jobname = self.ctx.inputs.metadata.options.jobname
             else:
                 jobname = 'BigDFT job'
             self.report('{}<{}> completed successfully'.
-                        format(jobname, node.pk))
-            self.ctx.restart_calc = node
+                        format(jobname, calculation.pk))
+            self.ctx.restart_calc = calculation
             self.ctx.is_finished = True
 
     def setup(self):
