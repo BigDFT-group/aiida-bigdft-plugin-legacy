@@ -11,6 +11,8 @@ from aiida.engine.processes.workchains.utils import process_handler, ProcessHand
 
 from futile import YamlIO
 
+Dict = DataFactory('dict') 
+
 RemoteData = DataFactory('remote') 
 BigDFTCalculation = CalculationFactory('bigdft')
 
@@ -21,10 +23,14 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
     @classmethod
     def define(cls, spec):
         super(BigDFTBaseWorkChain, cls).define(spec)
-        spec.expose_inputs(BigDFTCalculation, namespace='bigdft')
         spec.input('show_warnings', valid_type=orm.Bool,
                    default=lambda: orm.Bool(True),
                    help='turn the warnings on/off.')
+        spec.input('run_opts', valid_type=Dict,
+                    required=False,
+                    help='metadata')
+        spec.expose_inputs(BigDFTCalculation, exclude=('metadata',))
+
         spec.outline(
             cls.setup,
             while_(cls.should_run_process)(
@@ -35,7 +41,6 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
         )
         spec.expose_outputs(BigDFTCalculation)
         #this one needs to be optional to avoid being checked wrongly by the restartworkchain
-        spec.output('bigdft_calc_folder', valid_type=RemoteData, required=False)
         spec.exit_code(100, 'ERROR_INPUT',
                        message='BigDFT input error')
         spec.exit_code(200, 'ERROR_RUNTIME',
@@ -99,11 +104,6 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
 
     def setup(self):
         super().setup()
-        self.ctx.inputs = AttributeDict(self.exposed_inputs(BigDFTCalculation,
-                                                            'bigdft'))
-        # self.ctx.inputs.code = self.inputs.code
+        self.ctx.inputs = AttributeDict(self.exposed_inputs(BigDFTCalculation))
+        self.ctx.inputs.metadata = AttributeDict(self.inputs.run_opts.get_dict())
 
-    def results(self):
-        calc = self.ctx.children[-1]
-        self.out('bigdft_calc_folder', calc.outputs.remote_folder)
-        super().results()

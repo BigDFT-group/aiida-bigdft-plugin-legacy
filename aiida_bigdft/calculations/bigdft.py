@@ -50,7 +50,7 @@ class BigDFTCalculation(CalcJob):
         spec.input('metadata.options.resources', valid_type=dict, default={'num_machines': 1, 'num_mpiprocs_per_machine': 1})
         spec.input('metadata.options.parser_name', valid_type=six.string_types, default='bigdft')
         spec.input('metadata.options.output_filename', valid_type=six.string_types, default=cls._OUTPUT_FILE_NAME)
-        spec.input('metadata.options.jobname', valid_type=six.string_types)
+        spec.input('metadata.options.jobname', valid_type=six.string_types, required=False)
         spec.input('parameters', valid_type=BigDFTParameters, help='Command line parameters for BigDFT')
         spec.input('structure', valid_type=orm.StructureData, help='StructureData struct')
         spec.input('structurefile', valid_type=orm.Str, help='xyz file', default=lambda: orm.Str(cls._POSINP_FILE_NAME))
