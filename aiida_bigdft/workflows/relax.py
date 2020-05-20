@@ -23,8 +23,8 @@ class BigDFTRelaxWorkChain(WorkChain):
     def define(cls, spec):
         super(BigDFTRelaxWorkChain, cls).define(spec)
         spec.expose_inputs(BigDFTBaseWorkChain,
-                           exclude=['bigdft.parameters',
-                                    'bigdft.extra_retrieved_files'])
+                           exclude=['parameters',
+                                    'extra_retrieved_files'])
         spec.input('parameters', valid_type=BigDFTParameters, required=False,
                    default=lambda: orm.Dict(), help='param dictionary')
         spec.input('extra_retrieved_files', valid_type=List, required=False,
@@ -63,7 +63,7 @@ class BigDFTRelaxWorkChain(WorkChain):
             InputActions.dict_set(inputdict, 'geopt', 'forcemax',
                                   self.inputs.relax.threshold_forces.value/0.52917721067121)
 
-        self.ctx.inputs.bigdft.parameters = BigDFTParameters(dict=inputdict)
+        self.ctx.inputs.parameters = BigDFTParameters(dict=inputdict)
 
         # gather outputs
         extra_retrieved_files = List()
@@ -73,7 +73,7 @@ class BigDFTRelaxWorkChain(WorkChain):
         extra_retrieved_files.extend([["./data*/*.xyz", ".", 2],
                                      ["./data*/geopt.mon", ".", 2],
                                      ["./final_*xyz", ".", 2]])
-        self.ctx.inputs.bigdft.extra_retrieved_files = extra_retrieved_files
+        self.ctx.inputs.extra_retrieved_files = extra_retrieved_files
 
         node = self.submit(BigDFTBaseWorkChain, **self.ctx.inputs)
         return ToContext(work=append_(node))
@@ -91,17 +91,17 @@ class BigDFTRelaxWorkChain(WorkChain):
         # We can output last *xyz file in data folder, restart, or fail
         outstruct = "final_posinp.xyz"
         repo = workchain.outputs.retrieved._repository._get_base_folder()
-        if self.inputs.bigdft.metadata.options.jobname is not None:
+        if self.inputs.run_opts.get_dict()['options']['jobname'] is not None:
             outstruct = "final_" +\
-                self.inputs.bigdft.metadata.options.jobname + ".xyz"
+                self.inputs.run_opts.get_dict()['options']['jobname'] + ".xyz"
         try:
             sf = repo.get_abs_path(outstruct, check_existence=True)
         except OSError:
             # do we have posout files ?
             subname = "data"
-            if self.inputs.bigdft.metadata.options.jobname is not None:
+            if self.inputs.run_opts.get_dict()['options']['jobname'] is not None:
                 subname = subname + "-" +\
-                    self.inputs.bigdft.metadata.options.jobname
+                    self.inputs.run_opts.get_dict()['options']['jobname']
 
             data_folder = repo.get_subfolder(subname)
             posout_list = data_folder.get_content_list(pattern="posout*")
