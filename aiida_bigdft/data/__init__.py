@@ -115,9 +115,9 @@ class BigDFTLogfile(Data):
                 try:
                     log.log['Timestamp of this run'] = \
                         log.log['Timestamp of this run'].strftime("%Y-%m-%d %H:%M:%S.%f")
-                    logs.append(log.log)
                 except KeyError:
                     pass
+                logs.append(log.log)
             self.set_attribute('logfile', logs)
         else:
             self.bigdftlogfile.log['Timestamp of this run'] = \

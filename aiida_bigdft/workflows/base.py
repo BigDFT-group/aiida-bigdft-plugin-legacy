@@ -84,7 +84,11 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
     @process_handler(priority=590)
     def check_warnings(self, calculation):
         if calculation.is_finished_ok and self.inputs.show_warnings:
-            warnings = calculation.outputs.bigdft_logfile.logfile.get('WARNINGS')
+            logfile=calculation.outputs.bigdft_logfile.logfile
+            if(isinstance(logfile, list)):
+                warnings = logfile[-1].get('WARNINGS')
+            else:
+                warnings = logfile.get('WARNINGS')
             if warnings is not None:
                 self.report('Warnings were found :')
                 for warn in warnings:
