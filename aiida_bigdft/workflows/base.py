@@ -55,7 +55,7 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
             return
         debug_folder = repo.get_subfolder('debug')
         # debug folder exists, error probably happened.
-        if self.ctx.inputs.metadata.options.jobname is not None:
+        if "jobname" in self.ctx.inputs.metadata.options:
             jobname = self.ctx.inputs.metadata.options.jobname
         else:
             jobname = 'BigDFT job'
@@ -97,7 +97,7 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
     @process_handler(priority=500)
     def finish(self, calculation):
         if calculation.is_finished_ok:
-            if self.ctx.inputs.metadata.options.jobname is not None:
+            if "jobname" in self.ctx.inputs.metadata.options:
                 jobname = self.ctx.inputs.metadata.options.jobname
             else:
                 jobname = 'BigDFT job'
@@ -109,5 +109,9 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
     def setup(self):
         super().setup()
         self.ctx.inputs = AttributeDict(self.exposed_inputs(BigDFTCalculation))
-        self.ctx.inputs.metadata = AttributeDict(self.inputs.run_opts.get_dict())
+        if self.inputs.get('run_opts') is not None:
+            self.ctx.inputs.metadata = AttributeDict(self.inputs.run_opts.get_dict())
+        else:
+            self.ctx.inputs.metadata = {}
+
 

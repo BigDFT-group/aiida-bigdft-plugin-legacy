@@ -91,7 +91,7 @@ class BigDFTRelaxWorkChain(WorkChain):
         # We can output last *xyz file in data folder, restart, or fail
         outstruct = "final_posinp.xyz"
         repo = workchain.outputs.retrieved._repository._get_base_folder()
-        if self.inputs.run_opts.get_dict()['options']['jobname'] is not None:
+        if "jobname" in self.inputs.run_opts.get_dict()['options']:
             outstruct = "final_" +\
                 self.inputs.run_opts.get_dict()['options']['jobname'] + ".xyz"
         try:
@@ -99,7 +99,7 @@ class BigDFTRelaxWorkChain(WorkChain):
         except OSError:
             # do we have posout files ?
             subname = "data"
-            if self.inputs.run_opts.get_dict()['options']['jobname'] is not None:
+            if "jobname" in self.inputs.run_opts.get_dict()['options']:
                 subname = subname + "-" +\
                     self.inputs.run_opts.get_dict()['options']['jobname']
 
