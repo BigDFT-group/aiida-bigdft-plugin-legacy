@@ -20,7 +20,7 @@
         ],
         "aiida.calculations": [
             "bigdft = aiida_bigdft.calculations.bigdft:BigDFTCalculation",
-            "postscript = aiida_bigdft.calculations.postscript:ScriptCalculation"
+            "bigdft.postscript = aiida_bigdft.calculations.postscript:ScriptCalculation"
         ],
         "aiida.parsers": [
             "bigdft = aiida_bigdft.parsers:BigDFTParser"
