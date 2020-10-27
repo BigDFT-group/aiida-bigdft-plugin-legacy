@@ -138,5 +138,6 @@ class BigDFTRelaxWorkChain(WorkChain):
 
         positions = content[0:forces_index]
         s._parse_xyz("".join(positions))
+        s._adjust_default_cell(vacuum_addition=0.0, pbc=self.inputs.structure.pbc)
         self.out('relaxed_structure', s.store())
         self.out_many(self.exposed_outputs(workchain, BigDFTBaseWorkChain))
