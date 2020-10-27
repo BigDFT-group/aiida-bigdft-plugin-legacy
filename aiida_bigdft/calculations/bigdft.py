@@ -13,7 +13,7 @@ import os
 from aiida import orm
 from aiida.common import datastructures, exceptions
 from aiida.engine import CalcJob
-from aiida.orm.nodes.data import List, SinglefileData
+from aiida.orm.nodes.data import List, SinglefileData, Float
 from aiida.plugins import DataFactory
 
 from BigDFT import Calculators as BigDFT_calc
@@ -54,7 +54,8 @@ class BigDFTCalculation(CalcJob):
         spec.input('parameters', valid_type=BigDFTParameters, help='Command line parameters for BigDFT')
         spec.input('structure', valid_type=orm.StructureData, help='StructureData struct')
         spec.input('structurefile', valid_type=orm.Str, help='xyz file', default=lambda: orm.Str(cls._POSINP_FILE_NAME))
-        spec.input('pseudos', valid_type=List, help='', default=lambda: List())
+        spec.input('pseudos', valid_type=List, help='', default=lambda: List(), required=False)
+        spec.input('kpoints', valid_type=Float, help='kpoint mesh or kpoint path', default=lambda: Float(-1.0), required=False)
         spec.input('extra_retrieved_files', valid_type=List, help='', default=lambda: List())
         spec.output('bigdft_logfile', valid_type=BigDFTLogfile, help='BigDFT log file as a dict')
         spec.exit_code(100, 'ERROR_MISSING_OUTPUT_FILES', message='Calculation did not produce all expected output files.')
@@ -105,6 +106,14 @@ class BigDFTCalculation(CalcJob):
             for filename in self.inputs.pseudos:
                 pseudo_filedata = SinglefileData(file=os.path.abspath(filename)).store()
                 local_copy_list.append((pseudo_filedata.uuid, pseudo_filedata.filename,filename))
+
+
+        if self.inputs.kpoints.value != -1.0:
+            dico.update({'kpt': {
+                            'method': 'auto',
+                            'kptrlen': self.inputs.kpoints.value
+                            }
+                        })
 
         #generate yaml input file from dict and whatever
 
