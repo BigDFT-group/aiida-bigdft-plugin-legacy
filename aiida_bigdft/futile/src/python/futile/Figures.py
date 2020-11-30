@@ -373,7 +373,7 @@ class FigureSet():
     #self.figures=[] #dereference everything
       
   def _onclick_quitButton(self,event):
-    print "Good bye!"
+    print ("Good bye!")
     self._quitall()
 
   def _get_figure(self,index=0,figname=None):

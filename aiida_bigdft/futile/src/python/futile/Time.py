@@ -27,11 +27,11 @@ class polar_axis():
     self.bot=np.array(self.subdata["level"])
     self.names=self.subdata["names"]
     self.radii = np.array(self.N*[self.step])
-    
+
     self.bars = self.ax.bar(self.theta,self.radii,
                           width=self.width,
                           bottom=self.step*self.bot,picker=True)
-   
+
     ilev=0
     #maxlev=max(self.bot)
     for r,bar,ilev in zip(self.radii, self.bars,self.theta):
@@ -53,7 +53,7 @@ class polar_axis():
   #    pylab.show()
   #  except KeyboardInterrupt:
   #    raise
-        
+
   def _find_name(self,th,level):
     import numpy as np
     levth=[]
@@ -78,7 +78,7 @@ class polar_axis():
     #  routine=np.argmin(-to_find_zero)
     #  return (self.theta[ipiv[routine]],self.names[level][routine],self.times[ipiv[routine]])
 
-    
+
   def _info_string(self,xdata,level):
     #create string to be plotted in plot
     (tt,name,time)=self._find_name(xdata,level)
@@ -105,7 +105,7 @@ class polar_axis():
         self.ax.texts.remove(self.comebackinfo)
         self.reset=True
       nameandlev=None
-    elif click==1:      
+    elif click==1:
       #thisline = event.artist
       #xdata, ydata = thisline.get_xy()
       xdata, ydata=event.xdata,event.ydata
@@ -122,12 +122,12 @@ class polar_axis():
     self.subdata=self.dump_timing_level(datatmp,starting_point=nameandlev)
     self.ax.cla()
     self.draw_polarplot()
-    if not self.reset: 
+    if not self.reset:
       self.comebackinfo=self.ax.text(0.02,0.95,
                                      'Subroutines of '+name+' (Right click to reset)',
                                      fontsize=15,transform = self.ax.transAxes)
     self.fig.canvas.draw()
-    
+
   def _info_callback(self,event):
     #print dir(event)
     #thisline = event.artist
@@ -194,7 +194,7 @@ class polar_axis():
       tel=tel+t0
       if brk: break
     return data
-  
+
 class TimeData:
   barwidth=0.9#0.35
   ignored_counters=['CPU parallelism','Routines timing and number of calls','SUMMARY','Report timestamp','Hostnames']
@@ -205,9 +205,9 @@ class TimeData:
     Arguments
     filenames: list of the files which have to be treated
     plottype: Decide the default yscale for the plotting
-              May be "Percent" or "Seconds" 
+              May be "Percent" or "Seconds"
     static: Show the plot statically for screenshot use
-    fontsize: Determine fontsize of the bar chart plot 
+    fontsize: Determine fontsize of the bar chart plot
     nokey: Remove the visualization of the key from the main plot
     counter: retrieve as reference value the counter provided
     only_last: retrieve only the last document in the time.yaml
@@ -243,7 +243,7 @@ class TimeData:
     self.nokey=kwargs.get('nokey',False)
     self.strong_scaling=kwargs.get('strong_scaling',True)
     counter=kwargs.get('counter','WFN_OPT') #the default value, to be customized
-    if counter in self.counters(): 
+    if counter in self.counters():
       self.inspect_counter(counter)
     else:
       print("Warning: counter not initialized, check the available counters")
@@ -269,7 +269,7 @@ class TimeData:
         self.hostnames.append(doc.get("Hostnames"))
         self.unbalancings.append(True)
         loclass=scf["Classes"].keys()
-        if 'Total' in loclass: 
+        if 'Total' in loclass:
           self.totals.append(scf["Classes"]["Total"][1])
         for cs in loclass:
           if cs not in self.classes and cs != "Total": self.classes.append(cs)
@@ -279,7 +279,7 @@ class TimeData:
         if mpit is not None:
             mpi=mpit.get('MPI tasks')
             omp=mpit.get('OMP threads')
-            if title is "Unknown": 
+            if title is "Unknown":
               title=str(mpi) if omp is None else str(mpi)+'-'+str(omp)
             ncores=mpi
             if omp is not None: ncores*=omp
@@ -289,7 +289,7 @@ class TimeData:
         self.ncores.append(ncores)
     self.classes.sort()
     self.classes.append("Unknown") #an evergreen
-      
+
   def inspect_counter(self,counter,unit=None):
     self.routines=[]
     self.hostnames=[]
@@ -331,7 +331,7 @@ class TimeData:
       label='Parallel Efficiency'
       dataline=[ (ref/b)/(c/coreref)  for b,c in zip(totals,self.ncores)]
     self.draw_lineplot(axis.twin,dataline,label)
-      
+
 
   def draw_barfigure(self,fig,axis,data,title):
     import numpy as np
@@ -346,8 +346,12 @@ class TimeData:
     #if self.vals == 'Percent': axis.set_yticks(np.arange(0,100,10))
     #then add buttons to the plot
     if self.radio is None and not self.static:
-      self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.08, 0.11], axisbg='lightgoldenrodyellow'), ('Seconds', 'Percent'),
-                                active=1 if self.vals=='Percent' else 0)
+      try:
+          self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.08, 0.11], axisbg='lightgoldenrodyellow'), ('Seconds', 'Percent'),
+                                    active=1 if self.vals=='Percent' else 0)
+      except AttributeError:
+          self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.08, 0.11], facecolor='lightgoldenrodyellow'), ('Seconds', 'Percent'),
+                                    active=1 if self.vals=='Percent' else 0)
       self.radio.on_clicked(self.replot)
       tt=axis.get_xticks()
       routics=[Fig.axis_from_data(fig,axis,(tic-0.45*self.barwidth,self.barwidth)) for tic in tt]
@@ -410,8 +414,8 @@ class TimeData:
                 if cat not in items:
                     items[cat]=np.zeros(len(dict_list))
                 items[cat][idoc]=dicat["Data"][self.iprc]
-    return [ (cat,items[cat]) for cat in items],[ doc["Classes"][category][1] for doc in dict_list] 
-    
+    return [ (cat,items[cat]) for cat in items],[ doc["Classes"][category][1] for doc in dict_list]
+
   def collect_categories(self,dict_list,vals):
     """ Collect all the categories which belong to all the dictionaries """
     import numpy as np
@@ -433,7 +437,7 @@ class TimeData:
                     data_unk.append(percent_unk)
                 elif self.iprc==1:
                     time_unk=(doc["Classes"]["Total"][1])*percent_unk/100.0
-                    data_unk.append(time_unk) 
+                    data_unk.append(time_unk)
             dat=np.array(data_unk)
         else:
             dat=np.array([doc["Classes"][cat][self.iprc] for doc in dict_list])
@@ -470,7 +474,7 @@ class TimeData:
         category=cat
         break
     #print 'category',category
-    if category is not None and category != "Unknown": self.inspect_category(category)  
+    if category is not None and category != "Unknown": self.inspect_category(category)
   def _barplot_gnuplot(self,data,ids,lookup=None,select_category=None):
       import Gnuplot
       import numpy as np
@@ -485,9 +489,9 @@ class TimeData:
       return gpdata,names
 
   def _aggregate_names(self,data,list_agg):
-    """ 
+    """
     Aggregate the names of the plot in some different categories
-    the structure of dict_agg should ba a list of tuples 
+    the structure of dict_agg should ba a list of tuples
     (newkey ,[list of oldkeys])
     between the original keys and the desired keys
     """
@@ -508,6 +512,17 @@ class TimeData:
     return result
 
   def gnuplot_figure(self,lookup=None,epsfile=None,aggregate=None,select_category=None):
+      """Create a figure to be plotted with gnuplot
+
+      Create a gnuplot histogram that can be plotted for production results.
+
+      Args:
+         lookup (list): A list of the items of the `TimeData` instance that will be considered for the histogram
+         epsfile (str): Name of the eps file in which the data will be plot
+         aggregate (list): list of tuples of the categories to aggregate, accoding to the convention
+              (newkey ,[list of oldkeys]) between the original keys and the desired keys
+         select_category (str): Name of the category to be plot, if specified the internal items of the category will be plot.
+      """
       import Gnuplot,numpy as np
       data=self.collect_categories(self.scf,self.vals)
       dataplot=data[0] if aggregate is None else self._aggregate_names(data[0],aggregate)
@@ -530,13 +545,14 @@ set ytics border in scale 1,0.5 nomirror norotate  offset character 0, 0, 0
 set ytics autofreq
 set y2tics border in scale 1,0.5 nomirror norotate  offset character 0, 0, 0
 set y2tics autofreq
+set xtics 0,0.5,0
 """)
       gp('set xrange [-1:'+str(len(names))+']')
       if self.vals=='Percent': gp('set yrange [0:100]')
-      gp('set xtics add (" " -1)')
+      #gp('set xtics add (" " -1)')
       for i,xtic in enumerate(names):
-        gp('set xtics add ("'+str(xtic)+'" '+str(i)+') rotate by 45 right')
-      gp('set xtics add (" " '+str(len(names))+')')
+          gp('set xtics add ("'+str(xtic)+'" '+str(i)+') rotate by 45 right')
+      #gp('set xtics add (" " '+str(len(names))+')')
       gp.ylabel(self.vals)
       gp.plot(*gpdata)
       if epsfile is not None: gp.hardcopy(filename=epsfile,eps=True,enhanced=True,color=True)
@@ -566,7 +582,7 @@ set y2tics autofreq
     if not nokey:
       #self.leg = axbars.legend(loc='upper right',fontsize=self.fontsize)
       self.leg = axbars.legend(loc='best',fontsize=self.fontsize)
-      self.leg.get_frame().set_alpha(0.4)  
+      self.leg.get_frame().set_alpha(0.4)
     #treat the totals differently
     return bot
 
@@ -576,7 +592,7 @@ set y2tics autofreq
     ind=np.arange(len(data))+self.barwidth/2.
     ax.plot(ind,data,'o-',color='red',label=label)
     ax.set_ylabel(label,fontsize=self.fontsize)
-          
+
   def replot(self,label):
     self.vals=label
     #print self.vals
@@ -642,7 +658,7 @@ set y2tics autofreq
       tmp=np.array(["max","min"])
     ax.set_ylabel('Load Unbalancing wrt average')
     ax.set_title('Work Load of different classes')
-    if tmp is not None: 
+    if tmp is not None:
       ax.set_xticks(ind+width/2.)
       ax.set_xticklabels(tmp,rotation=90,verticalalignment='bottom')
     ax.set_yticks(np.arange(0,2,0.25))
@@ -659,7 +675,7 @@ set y2tics autofreq
     origline = self.lined[index][legline]
     self._toggle_visible(origline,legline)
     fig.canvas.draw()
-  
+
   def _toggle_visible(self,data,legend):
     for val in data:
       vis = not val.get_visible()
@@ -669,4 +685,3 @@ set y2tics autofreq
         legend.set_alpha(1.0)
     else:
         legend.set_alpha(0.2)
-
