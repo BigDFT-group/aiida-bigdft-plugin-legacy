@@ -12,6 +12,7 @@ from aiida.orm.nodes import Data
 from voluptuous import Optional
 
 from BigDFT import Logfiles
+from BigDFT.scripts import InputGenerator
 
 # A subset of BigDFT's command line options
 cmdline_options = {
@@ -81,6 +82,24 @@ class BigDFTParameters(Data):
         string = super(BigDFTParameters, self).__str__()
         string += "\n" + str(self.get_attribute('dict'))
         return string
+
+    def set_inputfile(hgrid, dico, init_input=None, units="reduced"):
+        return InputGenerator.set_inputfile(hgrid, dico, init_input, units)
+
+    def set_spin(name, nat):
+        return InputGenerator.set_spin(name, nat)
+
+    def set_kpoints(nat):
+        return InputGenerator.set_kpoints(nat)
+
+    def set_strain(strain, ngrids, dico):
+        return InputGenerator.set_strain(strain, ngrids, dico)
+
+    def set_restart():
+        return InputGenerator.set_restart()
+
+    def transform_to_orthorombic(dico):
+        return InputGenerator.transform_to_orthorombic(dico)
 
 
 class BigDFTLogfile(Data):
