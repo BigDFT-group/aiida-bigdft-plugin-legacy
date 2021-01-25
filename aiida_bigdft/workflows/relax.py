@@ -16,6 +16,9 @@ BigDFTParameters = DataFactory('bigdft')
 StructureData = DataFactory('structure')
 ArrayData = DataFactory('array')
 
+HARTREE_TO_EV = 27.211386024367243
+HARTREE_BOHR_TO_EV_AG = 51.42208619083232
+
 
 class BigDFTRelaxWorkChain(WorkChain):
     """Structure relaxation workchain."""
@@ -64,7 +67,7 @@ class BigDFTRelaxWorkChain(WorkChain):
                                            self.inputs.relax.steps.value)
         if self.inputs.relax.threshold_forces is not None:
             InputActions.dict_set(inputdict, 'geopt', 'forcemax',
-                                  self.inputs.relax.threshold_forces.value / 0.52917721067121)
+                                  self.inputs.relax.threshold_forces.value / HARTREE_BOHR_TO_EV_AG)
 
         self.ctx.inputs.parameters = BigDFTParameters(dict=inputdict)
 
@@ -123,12 +126,12 @@ class BigDFTRelaxWorkChain(WorkChain):
 
                 data_folder = repo.get_subfolder(subname)
                 posout_list = data_folder.get_content_list(pattern="posout*")
-                if posout_list.empty():
+                if not posout_list:
                     # not even, we failed. Should have been caught before.
                     self.report(
                         'Relaxation failed - no output found')
                     return self.exit_codes.ERROR_FAILED_RELAX
-                sf = repo.get_abs_path(posout_list.sort()[-1][0])
+                sf = repo.get_abs_path(posout_list.sort()[-1])
         else:
             # no relaxation performed, file is named forces_posinp.xyz .. or yaml
 
@@ -159,7 +162,7 @@ class BigDFTRelaxWorkChain(WorkChain):
                 return self.exit_codes.ERROR_FAILED_RELAX
             firstline = content[0].split()
             content[0] = firstline[0] + '\n'
-            self.out('total_energy', orm.Float(firstline[2]).store())
+            self.out('total_energy', orm.Float(float(firstline[2]) * HARTREE_TO_EV).store())
 
             forces_index = content.index(" forces\n")
             forces = content[forces_index + 1:]
@@ -172,15 +175,19 @@ class BigDFTRelaxWorkChain(WorkChain):
 
             positions = content[0:forces_index]
             s._parse_xyz("".join(positions))
-            s._adjust_default_cell(vacuum_addition=0.0,
-                                   pbc=self.inputs.structure.pbc)
+            try:
+                s._adjust_default_cell(vacuum_addition=0.0,
+                                       pbc=self.inputs.structure.pbc)
+            except ValueError:
+                # we are probably on a plane, not a volume
+                pass
         elif extension == "yaml":
             logfile = workchain.outputs.bigdft_logfile.logfile
             if(isinstance(logfile, list)):
                 energy = logfile[-1].get('Energy (Hartree)')
             else:
                 energy = logfile.get('Energy (Hartree)')
-            self.out('total_energy', orm.Float(energy).store())
+            self.out('total_energy', orm.Float(energy * HARTREE_TO_EV).store())
             if(isinstance(logfile, list)):
                 forces = logfile[-1].get('Atomic Forces (Ha/Bohr)')
             else:
