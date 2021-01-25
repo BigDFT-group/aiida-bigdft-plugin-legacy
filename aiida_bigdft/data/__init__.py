@@ -83,8 +83,8 @@ class BigDFTParameters(Data):
         string += "\n" + str(self.get_attribute('dict'))
         return string
 
-    def set_inputfile(hgrid, dico, init_input=None, units="reduced"):
-        return InputGenerator.set_inputfile(hgrid, dico, init_input, units)
+    def set_inputfile(hgrid, dico, init_input=None, psp=[], units="reduced"):
+        return InputGenerator.set_inputfile(hgrid, dico, init_input, psp, units)
 
     def set_spin(name, nat):
         return InputGenerator.set_spin(name, nat)
@@ -100,6 +100,9 @@ class BigDFTParameters(Data):
 
     def transform_to_orthorombic(dico):
         return InputGenerator.transform_to_orthorombic(dico)
+
+    def set_psp(name, psp):
+        return InputGenerator.set_psp(name, psp)
 
 
 class BigDFTLogfile(Data):

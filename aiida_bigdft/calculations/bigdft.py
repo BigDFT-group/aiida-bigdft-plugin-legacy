@@ -98,7 +98,7 @@ class BigDFTCalculation(CalcJob):
         bigdft_calc = PluginSystemCalculator()
         local_copy_list = []
         # if the structure is not already inside input dict
-        if not dico["posinp"]:
+        if 'posinp' not in dico:
             posinp_filename = self.inputs.structurefile.value
             if self.inputs.structure is not None:
                 print("writing input posinp file")
@@ -127,19 +127,12 @@ class BigDFTCalculation(CalcJob):
                 pseudo_filedata = SinglefileData(
                     file=os.path.abspath(filename)).store()
                 local_copy_list.append(
-                    (pseudo_filedata.uuid, pseudo_filedata.filename, filename))
-
-        if self.inputs.kpoints:
-            var = {}
-            var["kpt"] = self.inputs.kpoints.dict
-            dico.update(var)
-
+                    (pseudo_filedata.uuid, pseudo_filedata.filename, pseudo_filedata.filename))
         # generate yaml input file from dict and whatever
 
         if "jobname" in self.inputs.metadata.options:
             bigdft_calc.update_global_options(
                 name=self.inputs.metadata.options.jobname)
-
         bigdft_calc._run_options(input=dico)
         bigdft_calc.pre_processing()
         if "jobname" not in self.inputs.metadata.options:

@@ -1,6 +1,7 @@
 from futile.Utils import write as safe_print
+import io
 
-def set_inputfile(hgrid, dico, init_input=None, units="reduced"):
+def set_inputfile(hgrid, dico, init_input=None, psp=[], units="reduced"):
     basicinput = """
 logfile: Yes
 dft:
@@ -27,7 +28,6 @@ mix:
 
 """
     import yaml
-    import os
     if not init_input:
         var = yaml.load(basicinput)
     else:
@@ -44,17 +44,7 @@ mix:
     if dico["name"] in ("Ba", "Ca"):
         var["mix"]["norbsempty"] = 8
     var["ig_occupation"] = {dico["name"]: {"empty_shells": ("s", "p", "d")}}
-    # Atoms
-    pspfile = "psppar."+dico["name"]
-    if not os.path.isfile(pspfile):
-        safe_print("WARNING: Using default PSP for atom", dico["name"])
-    else:
-        var[pspfile] = open(pspfile, 'r').read()
-    # var["posinp"] = {"positions": [{dico["name"]:
-    #                  map(float, dico[i + 1].split())}
-    #                  for i in range(dico["nat"])],
-    #                  "units": "reduced",
-    #                  "cell": (dico["a"], dico["b"], dico["c"])}
+    set_psp(dico["name"], psp)
     if units == "reduced":
         positions = [{dico["name"]: dico[i + 1]} for i in range(
             dico["nat"])]
@@ -80,6 +70,16 @@ mix:
             at["IGSpin"] = 1 - 2 * (i % 2)
     return var
 
+def set_psp(name, psp):
+        # Atoms
+    import os
+    pspfile = "psppar."+name
+    dirname = os.path.dirname(__file__)
+    filename =  os.path.join(dirname, "psppar", pspfile)
+    if not os.path.isfile(filename):
+        safe_print("WARNING: Using default PSP for atom", filename, name)
+    else:
+        psp.append(filename)
 
 def set_spin(name, nat):
     "Define the spin in function of the nature of the atoms"
