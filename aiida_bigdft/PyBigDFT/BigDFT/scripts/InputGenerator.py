@@ -46,10 +46,10 @@ mix:
     var["ig_occupation"] = {dico["name"]: {"empty_shells": ("s", "p", "d")}}
     set_psp(dico["name"], psp)
     if units == "reduced":
-        positions = [{dico["name"]: dico[i + 1]} for i in range(
+        positions = [{dico["name"]: dico[str(i + 1)]} for i in range(
             dico["nat"])]
     else:
-        positions = [{dico["name"]: [dico[i + 1][0]*dico["a"], dico[i + 1][1]*dico["b"],dico[i + 1][2]*dico["c"]]} for i in range(
+        positions = [{dico["name"]: [dico[str(i + 1)][0]*dico["a"], dico[str(i + 1)][1]*dico["b"],dico[str(i + 1)][2]*dico["c"]]} for i in range(
             dico["nat"])]
 
     var["posinp"] = {"positions": positions, "units": units,
@@ -135,6 +135,7 @@ def set_restart():
 
 
 def transform_to_orthorombic(dico):
+    print(dico)
     import math
     btype = None
     # Look for possible orthorombic transformation :
@@ -191,18 +192,18 @@ def transform_to_orthorombic(dico):
         dico[lb] = math.sqrt((a-b*math.cos(alpha)) **
                              2 + (b*math.sin(alpha))**2)
         for i in range(dico["nat"]):
-            u, v, w = dico[i+1]
+            u, v, w = dico[str(i+1)]
             a = P[0][0] * u + P[0][1] * v + P[0][2] * w
             b = P[1][0] * u + P[1][1] * v + P[1][2] * w
             c = P[2][0] * u + P[2][1] * v + P[2][2] * w
-            dico[i + 1] = (a, b, c)
+            dico[str(i + 1)] = (a, b, c)
             u += du
             v += dv
             w += dw
             a = P[0][0] * u + P[0][1] * v + P[0][2] * w
             b = P[1][0] * u + P[1][1] * v + P[1][2] * w
             c = P[2][0] * u + P[2][1] * v + P[2][2] * w
-            dico[dico["nat"] + i + 1] = (a, b, c)
+            dico[str(dico["nat"] + i + 1)] = (a, b, c)
         dico["nat"] *= 2
         dico[ang] = "90"
     elif btype == "rhombohedral" and dico["alpha"] == 60:
@@ -221,14 +222,14 @@ def transform_to_orthorombic(dico):
         dico["nat"] *= len(dd)
         for i in range(nat):
             for (j, (du, dv, dw)) in enumerate(dd):
-                u, v, w = dico[i+1]
+                u, v, w = dico[str(i+1)]
                 u += du
                 v += dv
                 w += dw
                 a = P[0][0] * u + P[0][1] * v + P[0][2] * w
                 b = P[1][0] * u + P[1][1] * v + P[1][2] * w
                 c = P[2][0] * u + P[2][1] * v + P[2][2] * w
-                dico[j * nat + i + 1] = (a, b, c)
+                dico[str(j * nat + i + 1)] = (a, b, c)
                 dico["alpha"] = 90.0
                 dico["beta"] = 90.0
                 dico["gamma"] = 90.0

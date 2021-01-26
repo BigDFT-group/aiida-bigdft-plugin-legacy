@@ -90,7 +90,7 @@ def elements_from_cif(files, name):
                 n = int(items[0][-1])
                 dico['nat'] = n
                 # dico[n] = "%s  %s  %s " % (items[2], items[3], items[4])
-                dico[n] = list(map(float, items[2:5]))
+                dico[str(n)] = list(map(float, items[2:5]))
         # Convert name
         if name is not None:
             dico["name"] = name
