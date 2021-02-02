@@ -1,6 +1,6 @@
 import yaml
 from futile.Utils import write
-    
+
 #function which removes from a set of lines the yaml_fields contained in the to_remove list
 def clean_logfile(logfile_lines,to_remove):
   """Remove yaml fields from a list of lines.
@@ -54,7 +54,7 @@ def clean_logfile(logfile_lines,to_remove):
          header=header.rstrip()+'\n'
          #eliminate the anchor
          header=header.lstrip(' ')
-         header=header.lstrip('*') 
+         header=header.lstrip('*')
          if len(header) > 0 :
             stream_list.append(header)
          #part to be printed, updated
@@ -62,7 +62,7 @@ def clean_logfile(logfile_lines,to_remove):
 
          #then check when the mapping will end:
          while True:
-            #create a stream with extra_lines block           
+            #create a stream with extra_lines block
             for i in range(0,min(extra_lines,len(line_rev))):
                stream_list.append(line_rev.pop())
             #create a stream to be parsed
@@ -103,7 +103,7 @@ def clean_logfile(logfile_lines,to_remove):
          if (remove_it not in removed):
            removed.append(remove_it)
            write('removed: ',remove_it)
-  # then print out the line 
+  # then print out the line
     cleaned_logfile.append(to_print)
 
   # check that everything has been removed, at least once
@@ -115,105 +115,165 @@ def clean_logfile(logfile_lines,to_remove):
   return cleaned_logfile
 
 
-def load(file=None,stream=None,doc_lists=True,safe_mode=False):
+def load_from_archive(arch, member=None):
+    import tarfile
+    tar = tarfile.open(arch)
+    members = [tar.getmember(member)] if member is not None else tar.getmembers()
+    # print members
+    for memb in members:
+        f = tar.extractfile(memb)
+        dicts += load(stream=f.read())
+        # Add the label (name of the file)
+        # dicts[-1]['label'] = memb.name
+
+
+def load(file=None, stream=None, doc_lists=True, safe_mode=False,
+         archive=None, member=None):
     """Encapsulate the loading of yaml documents.
-    
-    Provides a dictionary, or a list of dictionaries, which 
+
+    Provides a dictionary, or a list of dictionaries, which
     represents the structure of the stream to be loaded.
     It also wraps the yaml loader to perform a optimized parsing when the
     `minloader` of PyYaml 3.13 is available.
-    This wrapper ensures to extract from the stream the maximum possible information
-    by choosing the best loader available.
+    This wrapper ensures to extract from the stream the maximum possible
+    information by choosing the best loader available.
 
     Arguments:
-        file (str): path of the yaml-compliant file containing the stream to be loaded
+        file (str): path of the yaml-compliant file containing the stream
+             to be loaded
 
-        stream (str): the stream to load, overrides the ``file`` argument if present
+        stream (str): the stream to load, overrides the ``file`` argument
+             if present
 
-        doc_lists (bool): if True, ensures that the results is always in a form 
+        archive (str): path of the archive to be used for the retrieval
+             of the stream
+
+        member (str): name of the file to be extracted from the archive.
+            the entire archive is parsed if absent
+
+        doc_lists (bool): if True, ensures that the results is always in a form
            of lists of documents, even in the case of a single doc
-           When False, the return type is either a dictionary or a generator according
-           to the specifications of yaml.load and yaml.load_all respectively.
+           When False, the return type is either a dictionary or a generator
+           according to the specifications of yaml.load and
+           yaml.load_all respectively.
 
-        safe_mode (bool): When true, in the case of multiple documents 
-           in the stream, it loads the document one after another. 
-           This is useful to avoid losing of all the document list 
-           in the case when one of the document is 
-           not yaml compliant, like in the case of a broken logfile. 
-           It may works only when the separation of the 
-           documents is indicated by the usual syntax ``"---\\n"`` 
+        safe_mode (bool): When true, in the case of multiple documents
+           in the stream, it loads the document one after another.
+           This is useful to avoid losing of all the document list
+           in the case when one of the document is
+           not yaml compliant, like in the case of a broken logfile.
+           It may works only when the separation of the
+           documents is indicated by the usual syntax ``"---\\n"``
            (i.e. no yaml tags between documents)
 
     Returns:
         * a list of dictionaries, if ``doc_lists`` is set to ``True``;
-        * a dictionary, if the stream or the file contains a single yaml document;
-        * a generator if the parsed stream is made of multiple documents *and* ``safe_mode`` = ``False``;
-        * a list of dictionaries if the stream is made of multiple documents and ``safe_mode`` is ``True``.
+        * a dictionary, if the stream or the file, or the archive contains a
+             single yaml document;
+        * a generator if the parsed stream is made of multiple
+             documents *and* ``safe_mode`` = ``False``;
+        * a list of dictionaries if the stream is made of multiple documents
+             and ``safe_mode`` is ``True``.
     """
-    #Detect None otherwise a doc == '' gives an error
-    strm=stream if stream != None else open(file,'r').read()
-    #choose the loader
+    # choose the loader
     try:
-        ldr=yaml.MinLoader
-    except:
+        ldr = yaml.MinLoader
+    except Exception as e:
         try:
-            ldr=yaml.CLoader
-        except:
-            ldr=yaml.Loader
+            ldr = yaml.CLoader
+        except Exception as f:
+            ldr = yaml.Loader
 
-    #load the documents
-    ld=[]
+    # load the documents
+    ld = []
+
+    # verify if we are in the archive case
+    if archive is not None:
+        import tarfile
+        tar = tarfile.open(archive)
+        if member is not None:
+            members = [tar.getmember(member)]
+        else:
+            members = tar.getmembers()
+        ld = []
+        for memb in members:
+            f = tar.extractfile(memb)
+            if safe_mode:
+                try:
+                    ll = yaml.load(f.read(), Loader=ldr)
+                except Exception as f:
+                    write('Document', member, 'of archive NOT loaded, error:',
+                          f)
+            else:
+                ll = yaml.load(f.read(), Loader=ldr)
+            ld += ll
+            if len(members) == 1 and not doc_lists:
+                return ll
+        return ld
+
+    # Detect None otherwise a doc == '' gives an error
+    strm = stream if stream is not None else open(file, 'r').read()
     try:
-        ld=yaml.load(strm,Loader=ldr)
-        if doc_lists: ld=[ld]
+        ld = yaml.load(strm, Loader=ldr)
+        if doc_lists:
+            ld = [ld]
     except Exception as e:
         if safe_mode:
             ld = []
             documents = [v for v in strm.split('---\n') if len(v) > 0]
-            for i,raw_doc in enumerate(documents):
+            for i, raw_doc in enumerate(documents):
                 try:
-                    ld.append(yaml.load(raw_doc,Loader=ldr))
+                    ld.append(yaml.load(raw_doc, Loader=ldr))
                 except Exception as f:
-                    write('Document',i,'of stream NOT loaded, error:',f)
+                    write('Document', i, 'of stream NOT loaded, error:', f)
         else:
-            ld=yaml.load_all(strm,Loader=ldr)
-            if doc_lists: ld=[l for l in ld]
+            ld = yaml.load_all(strm, Loader=ldr)
+            if doc_lists:
+                ld = [l for l in ld]
     return ld
 
-def dump(data,filename=None,raw=False,tar=False):
+
+def dump(data, filename=None, raw=False, tar=False):
     """Encapsulate the dumping of dictionaries.
-    
+
     This function is useful to dump a dictionary in yaml or json-compliant form.
-    This may be used as an alternative to the usual :py:meth:`yaml.dump <https://pyyaml.org/wiki/PyYAMLDocumentation>` method,
+    This may be used as an alternative to the usual
+    :py:meth:`yaml.dump <https://pyyaml.org/wiki/PyYAMLDocumentation>` method,
     especially when the dictionary to be dump'ed is heavy.
     No particular attention is paid in human readability of the output.
-    The dumped information can then be parsed either from json or yaml interpreter.
+    The dumped information can then be parsed either from json or yaml
+    interpreter.
 
     Arguments:
        data (dict,list): the information to be dumped
-       filename (str): path of the file in which the information will be stored.
+       filename (str): path of the file in which the information will
+          be stored.
           If absent, the information is written on :py:func:`sys.stdout`.
-       raw (bool): if ``True`` the output is in json-style, otherwise it is pre-processed by :py:meth:yaml.dump, 
+       raw (bool): if ``True`` the output is in json-style, otherwise it is
+          pre-processed by :py:meth:yaml.dump,
           but ``None`` is passed to ``default_flow_style``.
-       tar (bool): if ``True`` the filename is assumed to be a compressed tarfile. 
-          The :py:mod:`tarfile` module is used to create and append information.
+       tar (bool): if ``True`` the filename is assumed to be a compressed
+          tarfile. The :py:mod:`tarfile` module is used to create and
+          append information.
     """
-    todump=str(data) if raw else yaml.safe_dump(data,default_flow_style=None)
+    todump = str(data) if raw else yaml.safe_dump(data,
+                                                  default_flow_style=None)
     if filename:
         if tar:
             import tarfile
             from cStringIO import StringIO
             import time
-            f=tarfile.TarInfo(filename)
-            f.size=len(str(todump))
-            f.mtime=time.time()
-            tar.addfile(f,StringIO(str(todump)))
+            f = tarfile.TarInfo(filename)
+            f.size = len(str(todump))
+            f.mtime = time.time()
+            tar.addfile(f, StringIO(str(todump)))
         else:
-            f=open(filename,'w')
+            f = open(filename, 'w')
             f.write(todump)
     else:
         import sys
         sys.stdout.write(todump)
+
 
 class YamlDB(dict):
     """
@@ -276,7 +336,7 @@ class YamlDB(dict):
                 startpos=endpos
                 i+=1
             if i==1: self.stream=doctmp
-        if self.stream is not None: 
+        if self.stream is not None:
             dd=self._load()
             if dd: super(YamlDB,self).update(dd)
     def __len__(self):
@@ -320,7 +380,7 @@ class YamlDB(dict):
         try:
             return yaml.load(stream,Loader=yaml.CLoader)
         except Exception(e):
-            #here we might put a bigger 
+            #here we might put a bigger
             return None
     def _event_finder(self,present,event,end=False):
         for i in yaml.parse(present,Loader=yaml.CLoader):
@@ -339,7 +399,7 @@ class YamlDB(dict):
             write( 'here',present,'end')
             return 'nothing','',len(present)
         else:
-            return len(present)  
+            return len(present)
     def _find_endblock(self,stream):
         """Find the end of the block which is yaml-compliant"""
         endpos=0

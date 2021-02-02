@@ -3,7 +3,7 @@ from matplotlib.widgets import AxesWidget
 
 def show_image(imgfile,title=None):
     """
-    Show image file using matplotlib imgread. Useful to bypass the 
+    Show image file using matplotlib imgread. Useful to bypass the
     Jupyter bug for converting a notebook into a pdf file
     """
     import matplotlib.pyplot as plt
@@ -268,7 +268,7 @@ class FigureSet():
   def __init__(self,**kwargs):
     import matplotlib.pyplot as plt
     from futile.Utils import kw_pop
-    newkw,title=kw_pop('title','',**kwargs)    
+    newkw,title=kw_pop('title','',**kwargs)
     self.title=title
     self.figures=[]
     self.showing=False
@@ -282,7 +282,7 @@ class FigureSet():
 
   def _locate(self,figname):
     for i,fig in enumerate(self.figures):
-      if figname==fig['Title']: 
+      if figname==fig['Title']:
         return i,fig
     return None
 
@@ -306,7 +306,7 @@ class FigureSet():
     import matplotlib.pyplot as plt
     toadd=str(len(self.figures)+1)
     title=kwargs.get('title','Figure '+toadd if self.title is '' else self.title)
-    if self.title != '' and len(self.figures)>0: 
+    if self.title != '' and len(self.figures)>0:
       newtitle=title+' ('+self.title+')'
     else:
       newtitle=title
@@ -321,7 +321,7 @@ class FigureSet():
     else:
       rect=axargs.pop('rect')
       newax=plt.axes(rect,**axargs)
-    if totwin: 
+    if totwin:
       AxisSet.twinify(newax)
     #connect the home key execpt for the first figure
     from functools import partial
@@ -336,11 +336,11 @@ class FigureSet():
     number=event.key
     #print "pressed",number,'end'
     #return to the main figure if the key "home" is pressed
-    if str(number)=='home': 
+    if str(number)=='home':
       #print 'raising window'
       self._raisewindow(0)
     elif number == 'q' or number == 'Q':
-      if ifig==0: 
+      if ifig==0:
         self._quitall()
       else:
         figax=self.figures[ifig]
@@ -371,7 +371,7 @@ class FigureSet():
       plt.close(figax['Figure'])
     self.showing=False
     #self.figures=[] #dereference everything
-      
+
   def _onclick_quitButton(self,event):
     print ("Good bye!")
     self._quitall()
@@ -388,7 +388,7 @@ class FigureSet():
 
   def show(self,figname=None):
     import matplotlib.pyplot as plt
-    if figname is not None and self.exists(figname): 
+    if figname is not None and self.exists(figname):
       fx,ax=self._get_figure(figname=figname)
       if not self.showing: self.show()
       fx.show()
