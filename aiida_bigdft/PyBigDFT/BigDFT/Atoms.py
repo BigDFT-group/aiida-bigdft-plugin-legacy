@@ -1,9 +1,6 @@
 '''
 This module defines the atom class, which is a class which contains very
 general descriptions of a single atom.
-
-Atoms act as dictionary types. Allowed dictionary values are defined in
-the ``MULTIPOLE_ANALYSIS_KEYS`` and ``PROTECTED_KEYS`` lists.
 '''
 try:
     from collections.abc import MutableMapping
@@ -14,24 +11,7 @@ from futile.Utils import write as safe_print
 #: Conversion between Atomic Units and Bohr
 AU_to_A = 0.52917721092
 #: A list of valid keys for describing a multipole.
-MULTIPOLE_ANALYSIS_KEYS = ['q0', 'q1', 'q2',
-                           'sigma', 'multipole character']
-#: A list of valid keys for describing an atom.
-PROTECTED_KEYS = MULTIPOLE_ANALYSIS_KEYS + \
-    ["frag"] + ["r", "units", 'force', 'velocity']
-
-
-def nzion(sym):
-    """
-    Returns the charge of the nucleus associated with an atomic symbol.
-
-    Args:
-      sym (str): the atomic symbol of this atom.
-
-    Returns:
-      (float): the charge of that nucleus.
-    """
-    return _nzion[sym]
+MULTIPOLE_ANALYSIS_KEYS = ['q0', 'q1', 'q2', 'sigma', 'multipole character']
 
 
 def atomic_number(sym):
@@ -47,6 +27,19 @@ def atomic_number(sym):
     return _atomic_number[sym]
 
 
+def atomic_weight(sym):
+    """
+    Returns the weight number associated with the given symbol.
+
+    Args:
+      sym (str): the atomic weight of this atom.
+
+    Returns:
+      (int): the atomic weight
+    """
+    return _atomic_weight[sym]
+
+
 def number_to_symbol(number):
     """
     Returns the symbol of atoms with a given atomic number.
@@ -60,20 +53,62 @@ def number_to_symbol(number):
     return [x for x in _atomic_number if _atomic_number[x] == number][0]
 
 
-_atomic_number = {"H": 1, "He": 2,
+_atomic_number = {"H": 1, "D": 1, "He": 2,
                   "Li": 3, "Be": 4, "B": 5, "C": 6,
                   "N": 7, "O": 8, "F": 9, "Ne": 10,
                   "Na": 11, "Mg": 12, "Al": 13, "Si": 14,
                   "P": 15, "S": 16, "Cl": 17, "Ar": 18,
-                  "Cu": 29, "Zn": 30}
+                  "K": 19, "Ca": 20, "Sc": 21, "Ti": 22,
+                  "V": 23, "Cr": 24, "Mn": 25, "Fe": 26,
+                  "Co": 27, "Ni": 28, "Cu": 29, "Zn": 30,
+                  "Ga": 31, "Ge": 32, "As": 33, "Se": 34,
+                  "Br": 35, "Kr": 36, "Rb": 37, "Sr": 38,
+                  "Y": 39, "Zr": 40, "Nb": 41, "Mo": 42,
+                  "Tc": 43, "Ru": 44, "Rh": 45, "Pd": 46,
+                  "Ag": 47, "Cd": 48, "In": 49, "Sn": 50,
+                  "Sb": 51, "Te": 52, "I": 53, "Xe": 54,
+                  "Cs": 55, "Ba": 56, "La": 57, "Ce": 58,
+                  "Pr": 59, "Nd": 60, "Pm": 61, "Sm": 62,
+                  "Eu": 63, "Gd": 64, "Tb": 65, "Dy": 56,
+                  "Ho": 67, "Er": 68, "Tm": 69, "Yb": 70,
+                  "Lu": 71, "Hf": 72, "W": 74, "Re": 75,
+                  "Os": 76, "Ir": 77, "Pt": 78, "Au": 79,
+                  "Hg": 80, "Tl": 81, "Pb": 82, "Bi": 83,
+                  "Po": 84, "At": 85, "Rn": 86}
 
+_atomic_weight = {"H": 1.00794, "D": 2.0141, "He": 4.003,
+                  "Li": 6.941, "Be": 9.012182, "B": 10.811,
+                  "C": 12.0107, "N": 14.00674, "O": 15.9994,
+                  "F": 18.9984032, "Ne": 20.1797, "Na": 22.989770,
+                  "Mg": 24.3050, "Al": 26.981538, "Si": 28.0855,
+                  "P": 30.973761, "S": 32.066, "Cl": 35.4527,
+                  "Ar": 39.948, "K": 39.0983, "Ca": 40.078,
+                  "Sc": 44.955910, "Ti": 47.867, "V": 50.9415,
+                  "Cr": 51.9961, "Mn": 54.938049, "Fe": 55.845,
+                  "Co": 58.933200, "Ni": 58.6934, "Cu": 63.546,
+                  "Zn": 65.39, "Ga": 69.723, "Ge": 72.61,
+                  "As": 74.92160, "Se": 78.96, "Br": 79.904, "Kr": 83.80,
+                  "Rb": 85.4678, "Sr": 87.62, "Y": 88.90585, "Zr": 91.224,
+                  "Nb": 92.90638, "Mo": 95.94, "Tc": 98, "Ru": 101.07,
+                  "Rh": 102.90550, "Pd": 106.42, "Ag": 107.8682, "Cd": 112.411,
+                  "In": 114.818, "Sn": 118.710, "Sb": 121.760, "Te": 127.60,
+                  "I": 126.90447, "Xe": 131.29, "Cs": 132.90545196,
+                  "Ba": 37.327, "La": 138.90547, "Ce": 140.116,
+                  "Pr": 140.90766, "Nd": 144.242, "Pm": None, "Sm": 150.36,
+                  "Eu": 151.964, "Gd": 157.25, "Tb": 158.925354, "Dy": 162.500,
+                  "Ho": 164.930328, "Er": 167.259, "Tm": 168.934218,
+                  "Yb": 173.045, "Lu": 174.9668, "Hf": 178.486,
+                  "Ta": 180.94788, "W": 183.84, "Re": 186.207, "Os": 190.23,
+                  "Ir": 192.217, "Pt": 195.084, "Au": 196.966570,
+                  "Hg": 200.592, "Tl": 204.38, "Pb": 207.2, "Bi": 208.98040,
+                  "Po": None, "At": None, "Rn": None}
 
-_nzion = {"H":  1.0, "He": 2.0,
-          "Li": 1.0, "Be": 2.0, "B":  3.0, "C":  4.0,
-          "N": 5.0, "O": 6.0, "F":  7.0, "Ne": 8.0,
-          "Na": 1.0, "Mg": 2.0, "Al": 3.0, "Si": 4.0,
-          "P":  5.0, "S":  6.0, "Cl": 7.0, "Ar": 8.0,
-          "Cu": 11.0}
+_nzion_default_psp = {"H":  1.0, "D":  1.0, "He": 2.0,
+                      "Li": 1.0, "Be": 2.0, "B":  3.0, "C":  4.0,
+                      "N": 5.0, "O": 6.0, "F":  7.0, "Ne": 8.0,
+                      "Na": 1.0, "Mg": 2.0, "Al": 3.0, "Si": 4.0,
+                      "P":  5.0, "S":  6.0, "Cl": 7.0, "Ar": 8.0,
+                      "Cu": 11.0, "Zn": 12.0, "Br": 7.0}
 
 
 class Atom(MutableMapping):
@@ -105,6 +140,13 @@ class Atom(MutableMapping):
         """
         return atomic_number(self.sym)
 
+    @property
+    def atomic_weight(self):
+        """
+        The atomic number of this atom.
+        """
+        return atomic_weight(self.sym)
+
     def dict(self):
         """
         Convert to a dictionary.
@@ -130,12 +172,86 @@ class Atom(MutableMapping):
 
         return return_dict
 
+    def serialize(self, units='bohr'):
+        """
+        Transform the atom in a dictionary that can be employed for
+        the construction of dataframes or pandas series.
+
+        Args:
+            units (str): the units for the positions
+        Returns:
+            dict: the serialized dictionary
+        """
+        xyz = ['x', 'y', 'z']
+        atdict = {}
+        for key, val in self.dict().items():
+            if key == self.sym:
+                atdict['sym'] = self.sym
+                reval = self.get_position(units=units)
+                atdict.update({t+'_coord': reval[i]
+                               for i, t in enumerate(xyz)})
+                q_ion = self.get('nzion')  # nzion(self.sym)
+                if q_ion is not None:
+                    atdict['zion'] = q_ion
+                mchar = self.dict().get('multipole character')
+                if mchar is not None:
+                    q0 = self.dict()['q0'][0]
+                    if q_ion is not None:
+                        if mchar == 'gross':
+                            atdict['qel_0'] = q0
+                        else:
+                            atdict['qel_0'] = q0 - q_ion
+                    else:
+                        if mchar == 'net':
+                            atdict['qel_0'] = q0
+            elif key == 'r':
+                fac = AU_to_A if self.dict()['units'] == 'angstroem' else 1.0
+                atdict.update({key+'_'+str(i): t/fac
+                               for i, t in enumerate(val)})
+            elif key == 'units':
+                atdict['units'] = units
+            elif isinstance(val, list):
+                atdict.update({key+'_'+str(i): t
+                               for i, t in enumerate(val)})
+            else:
+                atdict[key] = val
+            try:
+                atdict["nel"] = self.nel
+            except Exception:
+                atdict["nel"] = None
+        return atdict
+
+    @property
+    def is_link(self):
+        """
+        Whether or not this atom is a link atom or not.
+        """
+        try:
+            return self["link_atom"]
+        except KeyError:
+            return False
+
+    @is_link.setter
+    def is_link(self, v):
+        self["link_atom"] = v
+
     @property
     def nel(self):
         """
         The number of electrons in this atom.
         """
-        return nzion(self.sym)
+        if "nzion" in self:
+            return self["nzion"]
+        elif self.sym in _nzion_default_psp:
+            return _nzion_default_psp[self.sym]
+        else:
+            raise Exception("Number of electrons not set for this atom",
+                            "either explicitly set the nzion key or ",
+                            "try something like set_electrons_from_log")
+
+    @nel.setter
+    def nel(self, val):
+        self["nzion"] = val
 
     @property
     def q0(self):
@@ -218,12 +334,14 @@ class Atom(MutableMapping):
             del self[sym]
             self[v] = val
 
-    def get_position(self, units="bohr"):
+    def get_position(self, units="bohr", cell=None):
         """
         Returns the position of the atom in the desired units.
 
         Args:
           units (str): the units to return the position in. Default is bohr.
+          cell (list): the vectors of the unit cell (3x3). If passed, the
+            minimum image convention is enforced.
 
         Returns:
           An array of position values.
@@ -238,10 +356,14 @@ class Atom(MutableMapping):
         pos = array([float(x) for x in pos])
 
         # Make sure the units are correct
-        if _IsAngstroem(self):
+        if IsAngstroem(self):
             pos /= AU_to_A
-        if _IsAngstroem(units):
+        if IsAngstroem(units):
             pos *= AU_to_A
+
+        # Enforce minimum image convention
+        if cell is not None:
+            pos = cell.minimum_image(pos, units)
 
         return [float(x) for x in pos]
 
@@ -257,9 +379,9 @@ class Atom(MutableMapping):
         from numpy import array
         # Convert the input to the right units.
         pos = array(new_pos)
-        if _IsAngstroem(units):
+        if IsAngstroem(units):
             pos /= AU_to_A
-        if _IsAngstroem(self):
+        if IsAngstroem(self):
             pos *= AU_to_A
         pos = [x for x in pos]
 
@@ -277,8 +399,6 @@ class Atom(MutableMapping):
         self.store[self.__keytransform__(key)] = value
 
     def __delitem__(self, key):
-        if key == self.sym:
-            raise ValueError("You can't delete the symbol from an atom.")
         del self.store[self.__keytransform__(key)]
 
     def __iter__(self):
@@ -305,8 +425,8 @@ class Atom(MutableMapping):
         othercomp = Atom(other)
 
         # Compare Symbols
-        sym1 = self.sym
-        sym2 = othercomp.sym
+        sym1 = self.sym.title()
+        sym2 = othercomp.sym.title()
         if sym1 != sym2:
             return False
 
@@ -325,27 +445,32 @@ def _GetSymbol(atom):
       atom (dict): a dictionary describing the atom.
     Returns:
       (str): the symbol the atom.
+    Raises:
+       ValueError: atom with no symbol
     """
     ks = atom.keys()
     if 'sym' in ks:
-        return atom['sym']
+        sym = atom['sym']
+        if len(sym) == 0:  # fallback in case of no symbol
+            sym = atom['name'][:1]
+        return sym
 
     for k in ks:
-        if k not in PROTECTED_KEYS and isinstance(atom[k], list):
+        if k.title() in _atomic_number and isinstance(atom[k], list):
             if len(atom[k]) == 3:
                 return k
 
     raise ValueError
 
 
-def _IsAngstroem(units):
+def IsAngstroem(units):
     """
     Checks if a string or atom has angstroem as its units.
 
     Args:
-      units: either a string, or an ``Atom``.
+      units: either a string, or a (BigDFT.Atoms.Atom).
     """
-    if isinstance(units, Atom):
+    if hasattr(units, 'store'):
         check = units.store.get("units")
         if not check:
             return False
@@ -354,7 +479,7 @@ def _IsAngstroem(units):
     return check == "angstroem" or check == "angstroemd0"
 
 
-if __name__ == "__main__":
+def _example():
     """Test the atom module"""
     safe_print("Access the full data")
     test_atom = Atom({'r': [1.0, 0.0, 0.0], 'sym': "He", 'units': 'bohr'})
@@ -393,16 +518,6 @@ if __name__ == "__main__":
     safe_print(dict(test_atom))
     safe_print(test_atom.get_position('angstroem'))
 
-    safe_print("There is a protection to prevent you from deleting the")
-    safe_print("symbol of an atom from the dictionary.")
-    try:
-        del test_atom["frag"]
-        del test_atom["He"]
-    except ValueError as v:
-        safe_print(v)
-    safe_print(dict(test_atom))
-    safe_print()
-
     safe_print("But you can change the symbol if you are working with the")
     safe_print("other representation.")
     safe_print(dict(new_atom))
@@ -426,3 +541,7 @@ if __name__ == "__main__":
     safe_print(test_atom.get_position(units="angstroem"))
     safe_print(dict(test_atom))
     safe_print()
+
+
+if __name__ == "__main__":
+    _example()

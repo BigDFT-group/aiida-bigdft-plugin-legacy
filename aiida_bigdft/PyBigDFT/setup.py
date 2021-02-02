@@ -1,32 +1,32 @@
 from distutils.core import setup
 import setuptools
-#This is a list of files to install, and where
-#(relative to the 'root' dir, where setup.py is)
-#You could be more specific.
+# This is a list of files to install, and where
+# (relative to the 'root' dir, where setup.py is)
+# You could be more specific.
 files = ["things/*"]
 
-setup(name = "PyBigDFT",
-    version = "0.1",
-    description = "Python module for BigDFT drivers and analysis",
-    author = "Luigi Genovese",
-    author_email = "luigi.genovese@cea.fr",
-    url = "www.bigdft.org",
-    license = 'GNU-GPL',
-    packages = setuptools.find_packages(),
-    install_requires = ['ase','matplotlib','numpy'],
-    setup_requires = ['pytest-runner'],
-    tests_require = ['nbval'],
-    #'package' package must contain files (see list above)
-    #I called the package 'package' thus cleverly confusing the whole issue...
-    #This dict maps the package name =to=> directories
-    #It says, package *needs* these files.
-    #package_data = {'package' : files },
-    include_package_data = True,
-    #'runner' is in the root.
-    #scripts = ["runner"],
-    long_description = """
+setup(name="PyBigDFT",
+      version="0.9",
+      description="Python module for BigDFT drivers and analysis",
+      author="Luigi Genovese",
+      author_email="luigi.genovese@cea.fr",
+      url="www.bigdft.org",
+      license='GNU-GPL',
+      packages=setuptools.find_packages(),
+      install_requires=['ase', 'matplotlib', 'numpy'],
+      # setup_requires = ['pytest-runner'],
+      tests_require=['nbval'],
+      # 'package' package must contain files (see list above)
+      # I called the package 'package' thus cleverly confusing the whole issue...
+      # This dict maps the package name =to=> directories
+      # It says, package *needs* these files.
+      # package_data = {'package' : files },
+      include_package_data=True,
+      # 'runner' is in the root.
+      # scripts = ["runner"],
+      long_description="""
 Welcome to the PyBigDFT module. This module contains python programs to drive and analyse BigDFT calculations.
-The different calculations which are performed with BigDFT code will be also possible thanks to some of the functions 
+The different calculations which are performed with BigDFT code will be also possible thanks to some of the functions
 which are present in this package.
 """,
     #
@@ -36,7 +36,7 @@ which are present in this package.
     #   3 - Alpha
     #   4 - Beta
     #   5 - Production/Stable
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 4 - Beta',
 
     # Indicate who your project is intended for
     'Intended Audience :: End Users/Developers',
@@ -49,5 +49,6 @@ which are present in this package.
     # that you indicate whether you support Python 2, Python 3 or both.
     'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 2.7',
-    ]     
-  ) 
+    'Programming Language :: Python :: 3',
+    ]
+  )

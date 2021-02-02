@@ -55,6 +55,12 @@ Note:
    set_electronic_temperature
    calculate_tddft_coupling_matrix
    write_support_function_matrices
+   set_external_potential
+   set_implicit_solvent
+   set_dispersion_correction
+   set_psp_directory
+   set_psp_file
+
 
 """
 
@@ -102,7 +108,7 @@ def remove(inp, action):
        >>> set_xc(inp,'PBE')
        >>> write_orbitals_on_disk(inp)
        >>> log=code.run(input=inp) # perform calculations
-       >>> remove(write_orbitals_on_disk) #remove the action
+       >>> remove(inp, write_orbitals_on_disk) #remove the action
        >>> read_orbitals_from_disk(inp)
        >>> # this will restart the SCF from the previous orbitals
        >>> log2=code.run(input=inp)
@@ -403,7 +409,8 @@ def set_electronic_temperature(inp, kT=1.e-3, T=0):
     __set__(inp, 'mix', 'tel', tel)
 
 
-def optimize_geometry(inp, method='FIRE', nsteps=50):
+def optimize_geometry(inp, method='FIRE', nsteps=50, betax=4.0, frac_fluct=1.0,
+                      forcemax=0):
     """
     Optimize the geometry of the system
 
@@ -422,9 +429,18 @@ def optimize_geometry(inp, method='FIRE', nsteps=50):
           * SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by
                     SQNM in future release
           * SQNM:   Stabilized quasi-Newton minimzer
+       betax (float): the step size for the optimization method.
+          This stepsize is system dependent and it has therefore to be
+          determined for each system.
+       frac_fluct (float): Fraction of force fluctuations. Stop if
+          fmax < forces_fluct*frac_fluct.
+       forcemax (float): Max forces criterion when stop.
     """
     __set__(inp, 'geopt', 'method', method)
     __set__(inp, 'geopt', 'ncount_cluster_x', nsteps)
+    __set__(inp, 'geopt', 'betax', betax)
+    __set__(inp, 'geopt', 'frac_fluct', frac_fluct)
+    __set__(inp, 'geopt', 'forcemax', forcemax)
 
 
 def set_xc(inp, xc='PBE'):
@@ -525,18 +541,23 @@ def calculate_tddft_coupling_matrix(inp, tda=False, rpa=True, fxc=True):
     __set__(inp, 'output', 'coupling_matrix', output)
 
 
-def extract_virtual_states(inp, nvirt, davidson=False):
+def extract_virtual_states(inp, nvirt=8, davidson=False, norbv=None,
+                           itermax_virt=150):
     """
     Extract a given number of empty states **after** the scf cycle.
 
     Args:
        davidson (bool): If set to ``True`` activates davidson calculation,
-       otherwise Trace Minimization of the Hamiltonian is employed.
+           otherwise Trace Minimization of the Hamiltonian is employed.
+       norbv (int): Defines the total size of the virtual subspace,
+           which may be larger than nvirt.
     """
-    nv = nvirt if davidson else -nvirt
+    if norbv is None:
+        norbv = nvirt
+    nv = norbv if davidson else -norbv
     __set__(inp, 'dft', 'norbv', nv)
     __set__(inp, 'dft', 'nvirt', nvirt)
-    __set__(inp, 'dft', 'itermax_virt', 150)
+    __set__(inp, 'dft', 'itermax_virt', itermax_virt)
 
 
 def connect_run_data(inp, log=None):
@@ -557,10 +578,76 @@ def connect_run_data(inp, log=None):
 
 def calculate_dipole(inp):
     """
-    Extract the dipole momenet from the total charge density.
+    Extract the dipole moment from the total charge density.
 
     Note:
       This function is useful for the linear scaling setup as the cubic
       scaling approach always calculates the charge density multipoles.
     """
     __set__(inp, 'lin_general', 'calc_dipole', True)
+<<<<<<< HEAD
+
+
+def set_external_potential(inp, mm_pot):
+    """
+    Set the external potential to which the system is submitted outside the QM
+    region
+
+    Args:
+       mm_pot (dict): dictionary of the external potential which contains the
+          information on the counter-ions
+    """
+    __set__(inp, 'dft', 'external_potential', mm_pot)
+
+
+def set_implicit_solvent(inp, itermax=20, minres=0.0001):
+    """
+    Add an acqueous implicit solvent around the system with the
+        soft-sphere cavity method
+
+    Args:
+       itermax(int): maximum number of iteration of the
+           Generalized Poisson Solver
+       minres(float): minimum residue of the CG method to achieve
+           GPS convergence
+    """
+    __set__(inp, 'psolver', 'environment', 'cavity', 'soft-sphere')
+    __set__(inp, 'psolver', 'environment', 'itermax', itermax)
+    __set__(inp, 'psolver', 'environment', 'minres', minres)
+
+
+def set_dispersion_correction(inp):
+    """
+    Add Grimme's D3 correction to the energy and the forces
+
+    Warning:
+        Only works with Free Boundary conditions
+    """
+    __set__(inp, 'dft', 'dispersion', 5)
+
+
+def set_psp_file(inp, filename=None, element=None):
+    """
+    Employ the given PSP file for the provided element
+
+    Args:
+       filename (str): the path of the psp file
+       element(str): the element symbol for the PSP.
+           Employs the psp name if absent
+    """
+    if element is None:
+        element = filename.split('.')[-1]
+    __set__(inp, 'psppar.'+element, filename)
+
+
+def set_psp_directory(inp, directory='.'):
+    """
+    Employs all the "psppar.*" files of the given directory as pseudopotentials
+
+    Args:
+       directory (str): path of the psppar directory
+    """
+    from futile.Utils import file_list
+    for psp in file_list(directory, prefix='psppar',
+                         include_directory_path=True):
+        set_psp_file(inp, filename=psp)

@@ -4,7 +4,9 @@ It also provides some tools to extract typical informations about the run,
 like the energy, the eigenvalues and so on.
 """
 
-# This module needs: os, yaml, futile, matplotlib, numpy, BZ, DoS
+# to be appropriately put in a suitable module
+kcal_mev = 43.364
+to_kcal = 1.0/kcal_mev*27.211386*1000
 
 EVAL = "eval"
 SETUP = "let"
@@ -43,8 +45,26 @@ BUILTIN = {
                PRINT: "Dipole (AU)"},
     'electrostatic_multipoles': {PATH: [['Multipole coefficients']]},
     'energy': {PATH: [["Last Iteration", "FKS"], ["Last Iteration", "EKS"],
-                      ["Energy (Hartree)"]],
+                      ["Energy (Hartree)"],
+                      ['Ground State Optimization', -1,
+                       'self consistency summary', -1, 'energy']],
                PRINT: "Energy", GLOBAL: False},
+    'trH': {PATH: [['Ground State Optimization', -1, 'kernel optimization',
+                    -2, 'Kernel update', 'Kernel calculation', 0, 'trace(KH)']]
+            },
+    'hartree_energy': {PATH: [["Last Iteration", 'Energies', 'EH'],
+                              ['Ground State Optimization', -1,
+                               'self consistency summary', -1,
+                               'Energies', 'EH']]},
+    'ionic_energy': {PATH: [['Ion-Ion interaction energy']]},
+    'XC_energy': {PATH: [["Last Iteration", 'Energies', 'EXC'],
+                         ['Ground State Optimization', -1,
+                          'self consistency summary', -1,
+                          'Energies', 'EXC']]},
+    'trVxc': {PATH: [["Last Iteration", 'Energies', 'EvXC'],
+                     ['Ground State Optimization', -1,
+                      'self consistency summary', -1,
+                      'Energies', 'EvXC']]},
     'evals': {PATH: [["Complete list of energy eigenvalues"],
                      ["Ground State Optimization", -1, "Orbitals"],
                      ["Ground State Optimization", -1,
@@ -96,9 +116,39 @@ def get_logs(files):
     Return a list of loaded logfiles from files, which is a list
     of paths leading to logfiles.
 
+    Args:
+
     :param files: List of filenames indicating the logfiles
     :returns: List of Logfile instances associated to filename
     """
+    # if dictionary is not None:
+    #     # Read the dictionary or a list of dictionaries or from a generator
+    #     # Need to return a list
+    #     dicts = [dictionary] if isinstance(dictionary, dict) else [
+    #         d for d in dictionary]
+    # else if arch is not None:
+    #     dicts = YamlIO.load(archive=arch, member=member, safe_mode=True,
+    #                         doc_lists=True)
+    #
+    # if arch:
+    #     # An archive is detected
+    #     import tarfile
+    #     from futile import YamlIO
+    #     tar = tarfile.open(arch)
+    #     members = [tar.getmember(member)] if member else tar.getmembers()
+    #     # print members
+    #     for memb in members:
+    #         f = tar.extractfile(memb)
+    #         dicts += YamlIO.load(stream=f.read())
+    #         # Add the label (name of the file)
+    #         # dicts[-1]['label'] = memb.name
+    # elif dictionary:
+    # elif args:
+    #     # Read the list of files (member replaces load_only...)
+    #     dicts = get_logs(args)
+    #
+    #
+    #
     from futile import YamlIO
     logs = []
     for filename in files:
@@ -317,7 +367,7 @@ class Logfile():
             # print members
             for memb in members:
                 f = tar.extractfile(memb)
-                dicts.append(YamlIO.load(stream=f.read()))
+                dicts += YamlIO.load(stream=f.read())
                 # Add the label (name of the file)
                 # dicts[-1]['label'] = memb.name
             srcdir = os.path.dirname(arch)
@@ -363,8 +413,8 @@ class Logfile():
             import numpy
             # Initialize the class with the dictionary corresponding to the
             # lower value of the energy
-            ens = [(l.energy if hasattr(l, 'energy') else 1.e100)
-                   for l in self._instances]
+            ens = [(ll.energy if hasattr(ll, 'energy') else 1.e100)
+                   for ll in self._instances]
             #: Position in the logfile items of the run associated to lower
             #  energy
             self.reference_log = numpy.argmin(ens)
@@ -487,8 +537,10 @@ class Logfile():
         iorb = 1
         # renorm=len(xs)
         # iterate on k-points
-        kpts = self.kpts if hasattr(self, 'kpts') else [
-            {'Rc': [0.0, 0.0, 0.0], 'Wgt':1.0}]
+        if hasattr(self, 'kpts'):
+            kpts = self.kpts
+        else:
+            kpts = [{'Rc': [0.0, 0.0, 0.0], 'Wgt':1.0}]
         for i, kp in enumerate(kpts):
             ev = []
             # iterate on the subspaces of the kpoint
@@ -532,7 +584,7 @@ class Logfile():
         return evals
     #
 
-    def get_dos(self, label=None, npts=2500):
+    def get_dos(self, label=None, npts=2500, e_min=None, e_max=None):
         """
         Get the density of states from the logfile.
 
@@ -540,6 +592,10 @@ class Logfile():
         :type label: string
         :param npts: number of points of the DoS curve
         :type npts: int
+        :param e_min: minimum energy value for the DoS
+        :type e_min: float
+        :param e_max: maximum energy value for the DoS
+        :type e_max: float
         :returns: Instance of the DoS class
         :rtype: :class:`BigDFT.DoS.DoS`
         """
@@ -548,7 +604,8 @@ class Logfile():
         lbl = self.label if label is None else label
         sdos = self.sdos if hasattr(self, 'sdos') else None
         return DoS.DoS(bandarrays=self.evals, label=lbl, units='AU',
-                       fermi_level=self.fermi_level, npts=npts, sdos=sdos)
+                       fermi_level=self.fermi_level, npts=npts, sdos=sdos,
+                       e_min=e_min, e_max=e_max)
     #
 
     def get_brillouin_zone(self):
@@ -602,11 +659,11 @@ class Logfile():
         if not hasattr(self, '_instances'):
             print('ERROR: No geopt plot possible, single point run')
             return
-        for l in self._instances:
-            if hasattr(l, 'forcemax') and hasattr(l, 'energy'):
-                forces.append(l.forcemax)
-                energies.append(l.energy-self.energy)
-                ferr.append(0.0 if not hasattr(l, 'force_fluct') else (
+        for ll in self._instances:
+            if hasattr(ll, 'forcemax') and hasattr(ll, 'energy'):
+                forces.append(ll.forcemax)
+                energies.append(ll.energy-self.energy)
+                ferr.append(0.0 if not hasattr(ll, 'force_fluct') else (
                     self.force_fluct if hasattr(self, 'force_fluct') else 0.0))
         if len(forces) > 1:
             import matplotlib.pyplot as plt
@@ -652,6 +709,109 @@ class Logfile():
             summary.append(
                 {'No. of KS orbitals'+cmt: self.evals[0].info[0:nspin]})
         return yaml.dump(summary, default_flow_style=False)
+
+
+def _identify_value(line, key):
+    to_spaces = [',', ':', '{', '}', '[', ']']
+    ln = line
+    for sym in to_spaces:
+        ln = ln.replace(sym, ' ')
+    istart = ln.index(key) + len(key)
+    copy = ln[istart:]
+    return copy.split()[0]
+
+
+def _log_energies(filename, into_kcal=False):
+    from numpy import nan
+    TO_SEARCH = {'Energy (Hartree)': 'Etot',
+                 'Ion-Ion interaction energy': 'Eion',
+                 'trace(KH)': 'Ebs', 'EH': 'Eh', 'EvXC': 'EVxc',
+                 'EXC': 'EXC'}
+    data = {}
+    previous = {}
+    f = open(filename, 'r')
+    for line in f.readlines():
+        for key, name in TO_SEARCH.items():
+            if key in line:
+                previous[name] = data.get(name, nan)
+                todata = _identify_value(line, key)
+                try:
+                    todata = float(todata) * (to_kcal if into_kcal else 1.0)
+                except Exception:
+                    todata = nan
+                data[name] = todata
+    f.close()
+    return data, previous
+
+
+class Energies():
+    """
+    Find the energy terms from a BigDFT logfile.
+    May also accept malformed logfiles that are issued, for instance,
+    from a badly terminated run that had I/O error.
+
+    Args:
+        filename (str): path of the logfile
+        units (str): may be 'AU' or 'kcal/mol'
+        disp (float): dispersion energy (will be added to the total energy)
+        strict (bool): assume a well-behaved logfile
+    """
+    def __init__(self, filename, units='AU', disp=None, strict=True):
+        from numpy import nan
+        TO_SEARCH = {'energy': 'Etot',
+                     'ionic_energy': 'Eion',
+                     'trH': 'Ebs', 'hartree_energy': 'Eh', 'trVxc': 'EVxc',
+                     'XC_energy': 'EXC'}
+        self.into_kcal = units == 'kcal/mol'
+        self.conversion_factor = to_kcal if self.into_kcal else 1.0
+        data, previous = _log_energies(filename,
+                                       into_kcal=self.into_kcal)
+        try:
+            log = Logfile(filename)
+            data = {name: getattr(log, att, nan) * self.conversion_factor
+                    for att, name in TO_SEARCH.items()}
+        except Exception:
+            pass
+        self._fill(data, previous, disp=disp, strict=strict)
+
+    def _fill(self, data, previous, disp=None, strict=True):
+        from numpy import nan
+        if disp is None:
+            self.dict_keys = []
+            self.Edisp = 0
+        else:
+            self.dict_keys = ['Edisp']
+            self.Edisp = disp
+        for key, val in previous.items():
+            setattr(self, key, val)
+            self.dict_keys.append(key)
+            setattr(self, key+'_last', data[key])
+            self.dict_keys.append(key+'_last')
+        for key in ['Etot', 'Eion', 'Ebs']:
+            setattr(self, key, data.get(key, nan))
+            self.dict_keys.append(key)
+        try:
+            self.Etot_last = self.Ebs_last + self.Eion - self.Eh_last + \
+                             self.EXC_last - self.EVxc_last
+            self.Etot_approx = self.Ebs - self.Eh + self.Eion
+            self.sanity_error = self.Ebs - self.Eh + self.EXC - self.EVxc + \
+                self.Eion - self.Etot
+            self.dict_keys += ['Etot_last', 'Etot_approx']
+            self.Etot_last += self.Edisp
+            self.Etot_approx += self.Edisp
+        except Exception:
+            if strict:
+                raise ValueError('the data is malformed', data, previous)
+            self.sanity_error = 0.0
+        if abs(self.sanity_error) > 1.e-4 * self.conversion_factor:
+            raise ValueError('the sanity is too large', self.sanity_error)
+        self.dict_keys += ['sanity_error']
+        self.Etot += self.Edisp
+
+    @property
+    def to_dict(self):
+        dd = {key: getattr(self, key) for key in self.dict_keys}
+        return dd
 
 
 if __name__ == "__main__":

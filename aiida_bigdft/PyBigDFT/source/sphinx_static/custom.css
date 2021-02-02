@@ -1,0 +1,17 @@
+h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend {
+    margin-top: 0;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif !important;
+    color: #052669 !important;
+}
+
+.wy-side-nav-search {
+    background-color: #052669 !important;
+}
+
+
+body {
+    font-family: 'Nunito', sans-serif !important;
+
+ }
+

@@ -6,10 +6,11 @@
 Welcome to PyBigDFT's documentation!
 ====================================
 
-This package is a collection of Python Modules that are conceived for pre- and post- processing
-of BigDFT input and output files. Such modules are supposed to enhance the BigDFT experience
-by high-level approach.
-Also, calculators and workflows are supposed to be created and inspected with modules of the PyBigDFT package.
+This package is a collection of Python Modules that are conceived for pre- and
+post- processing of BigDFT input and output files. Such modules are supposed to
+enhance the BigDFT experience by high-level approach.
+Also, calculators and workflows are supposed to be created and inspected with
+modules of the PyBigDFT package.
 
 The documentation of this package is described in
 
@@ -18,6 +19,7 @@ The documentation of this package is described in
 
    docGeneration
 
+.. _pybigdft_api:
 Module Members
 ==============
 
@@ -35,7 +37,13 @@ Analysis of Logfiles and Ground-state related properties
 
 Processing of Fragment-related quantities
 
+.. toctree:: BigDFT.Systems
+
 .. toctree:: BigDFT.Fragments
+
+.. toctree:: BigDFT.Atoms
+
+.. toctree:: BigDFT.IO
 
 Processing of Linear Response Calculations and excitations
 
@@ -53,16 +61,19 @@ Organize runs and analyze output in a dataset
 
 .. toctree:: datasets
 
+Tools for the analysis of Biological systems
+
+.. toctree:: BigDFT.BioQM
+
 Interoperability with other chemistry programs
 
-.. toctree:: BigDFT.OpenBabel
+.. toctree:: BigDFT.Interop.ASEInterop
 
-(Py)BigDFT Tutorial page
+.. toctree:: BigDFT.Interop.BabelInterop
 
-.. toctree::
-   :maxdepth: 1
+.. toctree:: BigDFT.Interop.XTBInterop
 
-   tutorials
+.. toctree:: BigDFT.Interop.PSI4Interop
 
 Index of the Package
 ====================

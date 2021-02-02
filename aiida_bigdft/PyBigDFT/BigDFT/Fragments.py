@@ -1,34 +1,13 @@
 """
-This module is related to the usage of BigDFT with Fragment-related Quantities.
-Input as well as Logfiles might be processed with the classes and methods
-provided by it.
-
-The main two classes for this module are :class:`BigDFT.Fragments.System` and
-:class:`BigDFT.Fragments.Fragment`. A System is a named collection of
-fragments, and a Fragment is a list of atoms. Thus a System behaves much like
-a dictionary, whereas a Fragment behaves more like a list. All of the basic
-dictionary and list like operations can be applied.
+This module contains data structures for describing fragments. Fragments are
+orders lists of atoms.
 """
 
 from futile.Utils import write as safe_print
 try:
-    from collections.abc import MutableMapping, MutableSequence
+    from collections.abc import MutableSequence
 except ImportError:
-    from collections import MutableMapping, MutableSequence
-
-
-def GetFragTuple(fragid):
-    """
-    Fragment ids should have the form: "NAME:NUMBER". This splits the fragment
-    into the name and number value.
-
-    Args:
-      fragid (str): the fragment id string.
-
-    Return:
-      (tuple): fragment name, fragment number
-    """
-    return (fragid.split(":")[0], fragid.split(":")[1])
+    from collections import MutableSequence
 
 
 def distance(i, j, cell=None):
@@ -85,87 +64,29 @@ def pairwise_distance(i, j, cell=None):
     return dist
 
 
-def plot_fragment_information(axs, datadict, colordict=None, minval=None):
+def lineup_fragment(frag):
     """
-    Often times we want to plot measures related to the differnet fragments
-    in a system. For this routine, you can pass a dictionary mappin
-    fragment ids to some kind of value. This routine takes care of the
-    formatting of the axis to easily read the different fragment names.
+    Align the principal axis of inertia of the fragments along the
+    coordinate axis. Also shift the fragment such as its centroid is zero.
 
     Args:
-      axs (matplotlib.Axes): an axes object to plot on.
-      datadict (dict): a dictionary from fragment ids to some kind of data
-        value.
-      colordict (dict): optionally, a dictionary from fragment ids to a
-        color value.
-      minval (float): only values above this minimum value are plotted.
+      (BigDFT.Fragments.Fragment): the fragment to transform.
+
+    Returns:
+      (BigDFT.Fragments.Fragment): the transformed fragment.
     """
-    from BigDFT.Fragments import GetFragTuple
+    from numpy.linalg import eig
 
-    # Compute minval
-    if not minval:
-        minval = min(datadict.values())
+    # Shift the centroid to the origin.
+    Shift = Translation(frag.centroid)
+    Shift.invert()
+    new_frag = Shift.dot(frag)
 
-    # Sort by fragment id
-    slabels = sorted(datadict.keys(),
-                     key=lambda x: int(GetFragTuple(x)[1]))
-    svalues = [datadict[x] for x in slabels]
-
-    # Remove values below the minimum
-    slabels = [x for x in slabels if datadict[x] >= minval]
-    svalues = [x for x in svalues if x >= minval]
-
-    # Label the axis by fragments
-    axs.set_xlabel("Fragment", fontsize=12)
-    axs.set_xticks(range(len(datadict.keys())))
-    axs.set_xticklabels(slabels, rotation=90)
-
-    # Plot the actual values
-    axs.plot(svalues, 'x', markersize=12, color='k')
-
-    # Plot the colored values.
-    if colordict:
-        for i, key in enumerate(slabels):
-            if key not in colordict:
-                continue
-            axs.plot(i, svalues[i], 'x', markersize=12,
-                     color=colordict[key])
-
-
-class Lattice():
-    """
-    Defines the fundamental objects to deal with periodic systems
-    """
-
-    def __init__(self, vectors):
-        self.vectors = vectors
-
-    def grid(self, origin=[0.0, 0.0, 0.0], extremes=None, radius=None):
-        """
-        Produces a set of translation vectors from a given origin
-        """
-        import numpy as np
-        transl = []
-        g = [[], [], []]  # the grid of discrete translations
-        if extremes is not None:
-            # print extremes
-            for i, d in enumerate(extremes):
-                for k in range(d[0], d[1] + 1):
-                    g[i].append(k)
-            # print g
-            for i in g[0]:
-                arri = np.array(self.vectors[0]) * i
-                for j in g[1]:
-                    arrj = np.array(self.vectors[1]) * j + arri
-                    for k in g[2]:
-                        arrk = np.array(self.vectors[2]) * k + arrj
-                        vect = np.array(origin) + arrk
-                        app = True
-                        if radius is not None:
-                            app = np.linalg.norm(arrk) < radius
-                        if app:
-                            transl.append(vect)
-        return transl
+    # Align the principal axis of inertia are on the coordinate axis
+    Imat = new_frag.ellipsoid()
+    w, v = eig(Imat)
+    Redress = Rotation(v.T)
+    return Redress.dot(new_frag)
 
 
 class RotoTranslation():
@@ -303,12 +224,15 @@ class Fragment(MutableSequence):
     associated to it, like its electrostatic multipoles (charge, dipole, etc.)
     and also geometrical information (center of mass, principla axis etc.). A
     Fragment might also be rototranslated and combined with other moieteies to
-    form a :class:`BigDFT.Fragments.System`.
+    form a :class:`BigDFT.Systems.Systems`.
 
     Args:
       atomlist (list): list of atomic dictionaries defining the fragment
-      xyzfile (XYZReader): an XYZ file to read from.
+      xyzfile (BigDFT.IO.XYZReader): an XYZ file to read from.
       posinp (dict): the posinp style dictionary from a logfile/input file.
+      astruct (dict): a BigDFT atomic structure style dictionary.
+      system (BigDFT.Systems.System): a BigDFT system, esssentially this
+        reduces many fragments into a single fragment.
 
     .. todo::
        Define and describe if this API is also suitable for solid-state
@@ -316,9 +240,14 @@ class Fragment(MutableSequence):
 
     """
 
-    def __init__(self, atomlist=None, xyzfile=None, posinp=None, astruct=None):
-        from BigDFT.Atom import Atom
+    def __init__(self, atomlist=None, xyzfile=None, posinp=None, astruct=None,
+                 system=None):
+        from BigDFT.Atoms import Atom
         self.atoms = []
+
+        if system is not None:
+            self._system_to_fragment(system)
+            return
 
         # insert atoms.
         if atomlist:
@@ -340,8 +269,6 @@ class Fragment(MutableSequence):
             self.translate([-1.0*x for x in rshift])
 
         # Values
-        self.purity_indicator = None
-        self.q0 = None
         self.q1 = None
         self.q2 = None
         self.frozen = None
@@ -354,11 +281,11 @@ class Fragment(MutableSequence):
         self.atoms.__delitem__(index)
 
     def insert(self, index, value):
-        from BigDFT.Atom import Atom
+        from BigDFT.Atoms import Atom
         self.atoms.insert(index, Atom(value))
 
     def __setitem__(self, index, value):
-        from BigDFT.Atom import Atom
+        from BigDFT.Atoms import Atom
         self.atoms.__setitem__(index, Atom(value))
 
     def __getitem__(self, index):
@@ -375,6 +302,41 @@ class Fragment(MutableSequence):
         rval += other
         return rval
 
+    def __radd__(self, other):
+        return self if other == 0 else self.__add__(other)
+
+    def __eq__(self, other):
+        """
+        Compare two fragments. They are equal if all the atoms of the fragments
+        are identical.
+
+        other (Fragment): the fragment to compare with.
+        """
+        ok = True
+        for at1, at2 in zip(self, other):
+            ok = ok and at1 == at2
+            if not ok:
+                break
+        return ok
+
+    def serialize(self, name, units='bohr'):
+        """
+        Transform the fragment in a list that can be employed for
+        the construction of dataframes or pandas series.
+
+        Args:
+            name (str): the name of the fragment
+            units (str): the units for the positions
+        Returns:
+            list: the serialized fragment
+        """
+        positions = []
+        for at in self:
+            atdict = {'frag': name}
+            atdict.update(at.serialize(units=units))
+            positions.append(atdict)
+        return positions
+
     @property
     def centroid(self):
         """
@@ -384,7 +346,7 @@ class Fragment(MutableSequence):
         pos = [at.get_position() for at in self]
         return ravel(mean(pos, axis=0))
 
-    def center_of_charge(self, zion):
+    def center_of_charge(self):  # , zion):
         """
         The charge center which depends both on the position and net charge
         of each atom.
@@ -393,12 +355,22 @@ class Fragment(MutableSequence):
         cc = array([0.0, 0.0, 0.0])
         qtot = 0.0
         for at in self:
-            netcharge = at.q0
-            zcharge = zion[at.sym]
-            elcharge = zcharge - netcharge
+            # netcharge = at.q0
+            # zcharge = zion[at.sym]
+            elcharge = at.nel  # zcharge - netcharge
             cc += elcharge * array(at.get_position())
             qtot += elcharge
         return cc / qtot
+
+    @property
+    def q0(self):
+        """
+        Provides the global monopole of the fragments given as a sum of the
+        monopoles of the atoms.
+        """
+        if len(self) == 0:
+            return None
+        return [sum(filter(None, [at.q0 for at in self]))]
 
     def d0(self, center=None):
         """
@@ -414,15 +386,16 @@ class Fragment(MutableSequence):
         if center is not None:
             cxyz = center
         else:
-            cxyz = self.centroid
+            cxyz = self.center_of_charge()  # centroid
 
         d0 = zeros(3)
         found = False
         for at in self:
-            if at.q0 is not None:
-                found = True
-                d0 += at.q0 * (array(at.get_position()) - array(cxyz))
-
+            if at.q0 is None:
+                found = False
+                break
+            found = True
+            d0 += at.q0 * (array(at.get_position()) - array(cxyz))
         if found:
             return d0
         else:
@@ -473,21 +446,6 @@ class Fragment(MutableSequence):
             Imat[2, 1] += rxyz[2] * rxyz[1]
         return Imat
 
-    def fragment_transformation(self, frag2):
-        """
-        Returns the transformation among fragments if it exists.
-
-        Args:
-          frag2 (BigDFT.Fragments.Fragment): the fragment to transform between.
-
-        Returns:
-          (BigDFT.Fragments.RotoTranslation) : the transformation matrix.
-        """
-        from numpy import mat
-        pos1 = mat(self.centroid)
-        pos2 = mat(frag2.centroid)
-        return RotoTranslation(pos1, pos2)
-
     def get_external_potential(self, units="bohr", charge_offset=False):
         """
         Transform the fragment information into a dictionary ready to be
@@ -517,36 +475,74 @@ class Fragment(MutableSequence):
             ret_val += array(at.get_force())
         return [float(x) for x in ret_val]
 
-    def line_up(self):
-        """
-        Align the principal axis of inertia of the fragments along the
-        coordinate axis. Also shift the fragment such as its centroid is zero.
-        """
-        from numpy.linalg import eig
-        Shift = Translation(self.centroid)
-        Shift.invert()
-        self.transform(Shift)
-        # now the centroid is zero
-        Imat = self.ellipsoid()
-        w, v = eig(Imat)
-        Redress = Rotation(v.T)
-        self.transform(Redress)
-        # now the principal axis of inertia are on the coordinate axis
-
     @property
     def qcharge(self):
         """
         The net charge on a fragment.
         """
-        from BigDFT.Atom import nzion
-        netcharge = self.q0[0]
+        netcharge = self.q0[0] if self.q0 is not None else 0
         for at in self:
-            if "nzion" in at:
-                zcharge = at.qcharge["nzion"]
-            else:
-                zcharge = nzion(at.sym)
-            netcharge += zcharge
+            netcharge += at.nel
         return netcharge
+
+    @property
+    def nel(self):
+        """
+        The number of valence electrons of the atoms of the fragment
+        """
+        return sum([at.nel for at in self])
+
+    def rotate_on_axis(self, angle, axis, units="radians"):
+        """
+        Rotate a fragment along a specific axis.
+
+        Args:
+          angle (float): angle to rotate along the axis.
+          axis (list): a list of floats defining the vector to rotate along.
+          units (str): either radians or degrees.
+        """
+        from math import pi, cos, sin
+        from numpy import mat, array
+        from numpy.linalg import norm
+        from copy import deepcopy
+
+        # Deal with the units.
+        if units == "degrees":
+            angle_value = angle * pi/180
+        elif units == "radians":
+            angle_value = angle
+        else:
+            raise ValueError("Units must be degrees or radians")
+
+        # Translate back to the origin.
+        centroid = self.centroid
+        self.translate(-1.0 * centroid)
+
+        # Normalize the unit vector.
+        vec = array(axis) / norm(axis)
+
+        # Build the rotation
+        c = cos(angle_value)
+        s = sin(angle_value)
+        t = 1 - c
+        x = vec[0]
+        y = vec[1]
+        z = vec[2]
+
+        rot = mat([
+                   [t*x*x + c,    t*x*y - z*s, t*x*z + y*s],
+                   [t*x*y + z*s,  t*y*y + c,   t*y*z - x*s],
+                   [t*x*z - y*s,  t*y*z + x*s, t*z*z + c]
+                  ])
+
+        # Rotate
+        rt = Rotation(rot)
+        rself = rt.dot(self)
+        for i in range(0, len(self)):
+            self[i] = deepcopy(rself[i])
+
+        # Translate back
+        self.translate(centroid)
 
     def rotate(self, x=None, y=None, z=None, units="radians"):
         """
@@ -628,467 +624,41 @@ class Fragment(MutableSequence):
         for i in range(0, len(self)):
             self[i] = deepcopy(trans[i])
 
-
-def system_from_log(log, fragmentation=None):
-    """
-    This function returns a :class:`~BigDFT.Fragment.System` class out of a
-    logfile. If the logfile contains information about fragmentation and atomic
-    multipoles, then the system is created accordingly.
-    Otherwise, the fragmentation scheme is determined by the fragmentation
-    variable.
-
-    Args:
-       log (Logfile): the logfile of the QM run. In general must have been done
-           with Linear Scaling formalism.
-       fragmentation (str): the scheme to be used for the fragmentation in the
-           case if not provided internally by the logfile.
-           The possible values are ``atomic`` and ``full``, in which case the
-           system as as many fragments as the number of atoms, or only one
-           fragment, respectively.
-    Returns:
-        (BigDFT.Fragments.System) The instance of the class containing
-        fragments.
-    """
-    name = log.log.get('run_name', 'FULL') + ':0'
-
-    full_system = System()
-    if "posinp" in log.log:
-        posinp = log.log['posinp']
-        full_system[name] = Fragment(posinp=posinp)
-    else:
-        full_system[name] = Fragment(astruct=log.astruct)
-
-    # provide the atomic information on the system
-    if hasattr(log, 'electrostatic_multipoles'):
-        full_system.set_atom_multipoles(log)
-        if hasattr(log, 'forces'):
-            full_system.set_atom_forces(log)
-
-    # now we may defragment the system according to the provided scheme
-    if fragmentation == 'full':
-        return full_system
-    elif fragmentation == 'atomic' or 'posinp' not in log.log:
-        atomic_system = System()
-        for iat, at in enumerate(full_system[name]):
-            atomic_system['ATOM:' + str(iat)] = Fragment([at])
-        return atomic_system
-    else:
-        posinp = log.log['posinp']
-        frag_dict = {}
-        for iat, tupl in enumerate(zip(posinp['positions'],
-                                       full_system[name])):
-            at, obj = tupl
-            fragid = at.get('frag', 'ATOM:' + str(iat))
-            if isinstance(fragid, list):
-                fragid = str(fragid[0]) + ':' + str(fragid[1])
-            if fragid not in frag_dict:
-                frag_dict[fragid] = [obj]
-            else:
-                frag_dict[fragid].append(obj)
-        frag_system = System()
-        for fragid in frag_dict:
-            frag_system[fragid] = Fragment(frag_dict[fragid])
-        return frag_system
-
-
-class System(MutableMapping):
-    """
-    A system is defined as a named collection of fragments. You can manipulate
-    a system as if it were a standard python dictionary, however it also has
-    helper routines for performing operations on the full system.
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.store = dict()
-        self.update(dict(*args, **kwargs))
-        self.conmat = None
-
-    def dict(self):
-        """
-        Convert to a dictionary.
-        """
-        return self.store
-
-    def __getitem__(self, key):
-        return self.store[self.__keytransform__(key)]
-
-    def __setitem__(self, key, value):
-        self.store[self.__keytransform__(key)] = value
-
-    def __delitem__(self, key):
-        del self.store[self.__keytransform__(key)]
-
-    def __iter__(self):
-        return iter(self.store)
-
-    def __len__(self):
-        return len(self.store)
-
-    def __keytransform__(self, key):
-        return key
-
-    @property
-    def centroid(self):
-        """
-        Center of mass of the system
-        """
-        from numpy import mean
-        return mean([frag.centroid for frag in self.values()], axis=0)
-
-    @property
-    def central_fragment(self):
-        """
-        Returns the fragment whose center of mass is closest to the centroid
-
-        Returns:
-          (str): the name of the fragment.
-          (Fragment): the fragment object
-        """
-        import numpy as np
-        CMs = [frag.centroid for frag in self.values()]
-        idx = np.argmin([np.dot(dd, dd.T) for dd in (CMs - self.centroid)])
-        return list(self.keys())[idx], list(self.values())[idx]
-
-    def get_external_potential(self, units="bohr", charge_offset=False):
-        """
-        Transform the system information into a dictionary ready to be
-        put as an external potential.
-
-        Args:
-          units (str): the units of the external potential.
-          charge_offset (bool): by default the external potential ignores the
-            counter charge from the protons. Setting this to true adds the
-            positive charge to the potential.
-        """
-        ret_dict = {"units": units}
-        ret_dict["values"] = []
-        for frag in self.values():
-            ret_dict["values"].extend(
-                frag.get_external_potential(units, charge_offset))
-        ret_dict["global monopole"] = sum(
-            x["q0"][0] for x in ret_dict["values"])
-        return ret_dict
-
-    def get_k_nearest_fragments(self, target, k, cutoff=None):
-        """
-        Given a fragment id in a system, this computes the nearest fragment.
-
-        Args:
-          target (str): the fragment to find the nearest neighbor of.
-          k (int): the number of fragments to look for.
-          cutoff (float): will only return fragments with a certain cutoff.
-
-        Returns:
-          (lists): the ids of the nearest fragments.
-        """
-        from scipy.spatial import KDTree
-
-        # Setup the KD Tree for distance lookup
-        poslist = []
-        frag_lookup = []
-        for fragid, frag in self.items():
-            if fragid == target:
-                continue
+    def _system_to_fragment(self, sys):
+        # Convert to one big system.
+        self.__init__()
+        for frag in sys.values():
             for at in frag:
-                poslist.append(at.get_position())
-                frag_lookup.append(fragid)
-        tree = KDTree(poslist)
+                self += [at]
 
-        # Find the nearest fragments with a query of the tree.
-        targetpost = [x.get_position() for x in self[target]]
-        if cutoff is not None:
-            ndist, nearest = tree.query(targetpost, k=k,
-                                        distance_upper_bound=cutoff)
-        else:
-            ndist, nearest = tree.query(targetpost, k=k)
-
-        # We now have the nearest atom to each atom in this fragment.
-        # Next we combine this information and extract the closest
-        # fragments.
-
-        if k == 1:
-            ndist = [ndist]
-            nearest = [nearest]
-
-        distdict = {}
-        for i in range(0, len(nearest)):
-            for idx, dist in zip(nearest[i], ndist[i]):
-                try:
-                    fragidx = frag_lookup[idx]
-                except IndexError:
-                    # kdtree returns invalid indices if it can't find enough
-                    # points.
-                    continue
-                if fragidx not in distdict:
-                    distdict[fragidx] = dist
-                elif distdict[fragidx] < dist:
-                    distdict[fragidx] = dist
-
-        # Extract the k smallest values.
-        minlist = []
-        for i in range(0, k):
-            if len(distdict) == 0:
-                break
-            key = min(distdict, key=distdict.get)
-            minlist.append(key)
-            del distdict[key]
-
-        return minlist
-
-    def get_nearest_fragment(self, target):
-        """
-        Given a fragment id in a system, this computes the nearest fragment.
-
-        Args:
-          target (str): the fragment to find the nearest neighbor of.
-
-        Returns:
-          (str): the id of the nearest fragment.
-        """
-        return self.get_k_nearest_fragments(target, k=1)[0]
-
-    def get_net_force(self):
-        """
-        Returns the net force on a system in Ha/Bohr.
-
-        Returns:
-          (list): Three values which describe the net force.
-        """
-        from numpy import array
-        ret_val = array([0.0, 0.0, 0.0])
-        for frag in self.values():
-            ret_val += array(at.get_net_force())
-        return [float(x) for x in ret_val]
-
-    def get_posinp(self, units='angstroem'):
-        """
-        Provide the dictionary which has to be passed to the ``posinp`` value
-        of the :meth:`run` method of  the
-        :class:`~BigDFT.Calculators.SystemCalculator` class instance.
-
-        Args:
-           units (str): The units of the file. May be "angstroem" or "bohr".
-        """
-        pos = []
-        for fragid, frag in self.items():
-            for at in frag:
-                atdict = {at.sym: at.get_position(units)}
-                atdict["frag"] = list(GetFragTuple(fragid))
-                if frag.frozen:
-                    atdict["Frozen"] = frag.frozen
-                pos.append(atdict)
-        return {'units': units, 'positions': pos}
-
-    @property
-    def q0(self):
-        """
-        Provides the global monopole of the system given as a sum of the
-        monopoles of the atoms.
-        """
-        if len(self) == 0:
-            return None
-        return [sum(filter(None, [frag.q0[0] for frag in self.values()]))]
-
-    @property
-    def qcharge(self):
-        """
-        The total qcharge of a system.
-        """
-        return sum([frag.qcharge for frag in self.values()])
-
-    def rename_fragments(self):
-        """
-        This procedure automatically names the fragments in a system.
-
-        Returns:
-          (System): the same system, with the automatic naming scheme.
-        """
-        rnsys = System()
-        for i, fragid in enumerate(self):
-            rnsys["FRAG:"+str(i)] = self[fragid]
-        return rnsys
-
-    def set_atom_multipoles(self, logfile, correct_charge=True):
-        """
-        After a run is completed, we have a set of multipoles defined on
-        each atom. This routine will set those values on to each atom
-        in the system.
-
-        Args:
-          logfile (Logfiles.Logfile): logfile with the multipole values.
-          correct_charge (bool): currently there is an inconsistency in
-            terms of gross charge, and this corrects it.
-        """
-        mp = logfile.electrostatic_multipoles
-        for pole in mp["values"]:
-            pole["units"] = mp["units"]
-        lookup = self.compute_matching(mp["values"])
-
-        # Assign
-        for fragid, frag in self.items():
-            for i, at in enumerate(frag):
-                idx = lookup[fragid][i]
-                if idx >= 0:
-                    at.set_multipole(mp["values"][idx], correct_charge)
-
-    def set_atom_forces(self, logfile):
-        """
-        After a run is completed, we have the forces on each atom in the
-        logfile. This routine will set those values to each atom in this sytem.
-
-        Args:
-          logfile (Logfiles.Logfile): logfile with the forces.
-        """
-        # We will use the multipoles to help figure out which force value
-        # is associated with which atom
-        mp = logfile.electrostatic_multipoles
-        lookup = self.compute_matching(mp["values"])
-
-        # Assign forces
-        forces = logfile.forces
-        for fragid, frag in self.items():
-            for i, at in enumerate(frag):
-                idx = lookup[fragid][i]
-                if idx >= 0:
-                    at.set_force(list(forces[idx].values())[0])
-
-    def write_fragfile(self, filename, logfile):
-        """
-        Write out the file needed as input to the fragment analysis routine.
-
-        Args:
-          filename (str): name of the file to write to.
-          logfile (Logfiles.Logfile): the log file this calculation is based
-            on (to ensure a matching order of atoms).
-        """
-        from yaml import dump
-
-        # Extract the indices
-        mp = logfile.electrostatic_multipoles
-        lookup = self.compute_matching(mp["values"])
-        outlist = []
-        for fragid, frag in self.items():
-            outlist.append([])
-            for i, at in enumerate(frag):
-                idx = lookup[fragid][i]
-                outlist[-1].append(idx + 1)
-
-        # Write
-        with open(filename, "w") as ofile:
-            dump(outlist, ofile)
-
-    def write_pdb(self, filename):
-        """
-        Write out a system to a pdb file.
-
-        Args:
-          filename (str): the file to write to.
-        """
-        # Put all the data into this string.
-        outstr = ""
-
-        idx = 1
-        lookup = {}
-        for fragid, frag in self.items():
-            for i, at in enumerate(frag):
-                pos = [str("{:.3f}".format(x))
-                       for x in at.get_position("angstroem")]
-                fragtuple = GetFragTuple(fragid)
-
-                line = list(" " * 80)
-                line[0:6] = "HETATM"  # HETATM
-                line[7:11] = str(idx).rjust(4)  # SERIAL NUMBER
-                line[12:16] = at.sym.ljust(4)  # ATOM NAME
-                line[16:17] = " "  # ALTERNATIVE LOCATION INDICATOR
-                line[17:20] = fragtuple[0][:3].ljust(3)  # RESIDUE NAME
-                line[21:22] = "A"  # CHAIN IDENTIFIER
-                line[22:26] = fragtuple[1].rjust(3)  # RESIDUE SEQUENCE NUMBER
-                line[26:27] = " "  # CODE FOR INSERTION OF RESIDUES
-                line[30:38] = pos[0].rjust(8)  # X COORDINATE
-                line[38:46] = pos[1].rjust(8)  # Y COORDINATE
-                line[46:54] = pos[2].rjust(8)  # Z COORDINATE
-                line[54:60] = "      "  # OCCUPANCY
-                line[60:66] = "      "  # TEMPERATURE
-                line[72:76] = "    "  # SEGMENT IDENTIFIER
-                line[76:78] = at.sym.rjust(2)  # ELEMENT SYMBOL
-                line[78:80] = "  "  # CHARGE
-                outstr += line + "\n"
-
-                # Keep track of the indexes
-                lookup[(fragid, i)] = idx
-                idx = idx + 1
-
-        # Write the connectivity information
-        if self.conmat is not None:
-            for fragid, frag in self.items():
+        # Compute the connectivity, first the lookup table.
+        if sys.conmat is not None:
+            counter = 0
+            lookup = {}
+            for fragid, frag in sys.items():
                 for i, at in enumerate(frag):
-                    connections = self.conmat[fragid][i]
-                    line = list(" " * 80)
-                    line[0:6] = "CONECT"
-                    # SERIAL NUMBER
-                    line[7:11] = str(lookup[(fragid, i)]).rjust(4)
-                    if len(connections) > 0:  # BOND SERIAL NUMBERS
-                        line[12:16] = str(lookup[connections[0]]).rjust(4)
-                    if len(connections) > 1:
-                        line[17:21] = str(lookup[connections[1]]).rjust(4)
-                    if len(connections) > 2:
-                        line[22:26] = str(lookup[connections[2]]).rjust(4)
-                    if len(connections) > 3:
-                        line[27:31] = str(lookup[connections[3]]).rjust(4)
-                    outstr += line + "\n"
+                    lookup[(fragid, i)] = counter
+                    counter = counter + 1
 
-        # Finally, write out to file.
-        with open(filename, "w") as ofile:
-            ofile.write(outstr)
-
-    def compute_matching(self, atlist, shift=None):
-        """
-        Frequently we are passed a list of atom like objects from which we
-        need to extract data and assign it to a system. However, a system
-        can potentially store those atoms in any order, and may not have
-        the same set of atoms. This helper routine creates a mapping between
-        this list view, to the dictionary view of the system class.
-
-        Args:
-          atlist (list): a list of atom like objects.
-          shift (list): if the positions in atlist are shifted by some constant
-            vector you can specify that here.
-
-        Returns:
-          (dict): a mapping from a system to indices in the atom list. If
-            an atom is not in the list, an index value of -1 is assigned.
-        """
-        from BigDFT.Atom import Atom
-        from numpy import array
-        from scipy.spatial import KDTree
-
-        # Convert everything to pure positions to avoid overhead.
-        poslist = [array(Atom(x).get_position("bohr")) for x in atlist]
-        if shift is not None:
-            poslist = [x - array(shift) for x in poslist]
-        tree = KDTree(poslist)
-
-        # Seach for the mapping values
-        mapping = {}
-        for fragid, frag in self.items():
-            mapping[fragid] = []
-            for at in frag:
-                atpos = array(at.get_position("bohr"))
-                ndist, nearest = tree.query(atpos)
-                mapping[fragid].append(nearest)
-
-        return mapping
+            # Now the actual connectivity matrix.
+            self.conmat = {}
+            for fragid, frag in sys.items():
+                for i in range(0, len(frag)):
+                    t1 = (fragid, i)
+                    t2list = sys.conmat[fragid][i]
+                    self.conmat[lookup[t1]] = {}
+                    for t2, bo in t2list.items():
+                        self.conmat[lookup[t1]][lookup[t2]] = bo
 
 
-if __name__ == "__main__":
-    from BigDFT.XYZ import XYZReader, XYZWriter
-    from os.path import join
-    from os import system
+def _example():
+    """Example of using fragments"""
+    from BigDFT.IO import XYZReader, XYZWriter
     from copy import deepcopy
 
     safe_print("Read in an xyz file and build from a list.")
     atom_list = []
-    with XYZReader(join("Database", "XYZs", "SiO.xyz")) as reader:
+    with XYZReader("SiO") as reader:
         for at in reader:
             atom_list.append(at)
     frag1 = Fragment(atomlist=atom_list)
@@ -1097,8 +667,8 @@ if __name__ == "__main__":
     safe_print("Centroid", frag1.centroid)
     safe_print()
 
-    safe_print("Build from an xyz file directory.")
-    reader = XYZReader(join("Database", "XYZs", "Si4.xyz"))
+    safe_print("Build from an xyz file directly.")
+    reader = XYZReader("Si4")
     frag2 = Fragment(xyzfile=reader)
     for at in frag2:
         safe_print(at.sym, at.get_position())
@@ -1116,7 +686,9 @@ if __name__ == "__main__":
     with XYZWriter("test.xyz", len(frag3), "angstroem") as writer:
         for at in frag3:
             writer.write(at)
-    system("cat test.xyz")
+    with open("test.xyz") as ifile:
+        for line in ifile:
+            safe_print(line)
     safe_print()
 
     safe_print("We can also extract using the indices")
@@ -1126,41 +698,6 @@ if __name__ == "__main__":
         safe_print(dict(at))
     safe_print()
 
-    safe_print("Now we move on to testing the system class.")
-    safe_print("We might first begin in the easiest way.")
-    sys = System(frag1=frag1, frag2=frag2)
-    for at in sys["frag1"]:
-        safe_print(dict(at))
-    for at in sys["frag2"]:
-        safe_print(dict(at))
-    safe_print()
 
-    safe_print("What if we want to combine two fragments together?")
-    sys["frag1"] += sys.pop("frag2")
-    for at in sys["frag1"]:
-        safe_print(dict(at))
-    safe_print("frag2" in sys)
-    safe_print()
-
-    safe_print("What if I want to split a fragment by atom indices?")
-    temp_frag = sys.pop("frag1")
-    sys["frag1"], sys["frag2"] = temp_frag[0:3], temp_frag[3:]
-    for at in sys["frag1"]:
-        safe_print(dict(at))
-    for at in sys["frag2"]:
-        safe_print(dict(at))
-    safe_print()
-
-    safe_print("Construct a system from an XYZ file.")
-    fname = join("Database", "XYZs", "BH2.xyz")
-    sys2 = System(frag1=Fragment(xyzfile=XYZReader(fname)))
-
-    safe_print("Split it to fragments")
-    sys2["frag1"], sys2["frag2"] = sys2["frag1"][0:1], sys2["frag1"][1:]
-
-    safe_print("And write to file")
-    with XYZWriter("test.xyz", len(frag3), "angstroem") as writer:
-        for fragid, frag in sys2.items():
-            for at in frag:
-                writer.write(at)
-    system("cat test.xyz")
+if __name__ == "__main__":
+    _example()

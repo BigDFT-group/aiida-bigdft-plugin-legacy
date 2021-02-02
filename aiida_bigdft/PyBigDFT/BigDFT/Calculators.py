@@ -377,9 +377,12 @@ class SystemCalculator(Runner):
         # Build the command setting the number of omp threads
         self.command = (
             self._global_options['mpi_run'] + ' ' + executable).strip()
-        safe_print(
-            'Initialize a Calculator with OMP_NUM_THREADS=%s and command %s' %
-            (self._global_options['omp'], self.command))
+
+        if verbose:
+            safe_print(
+                'Initialize a Calculator with OMP_NUM_THREADS=%s '
+                'and command %s' %
+                (self._global_options['omp'], self.command))
 
     def pre_processing(self):
         # def run(self, name='', outdir='', run_name='', input={},
@@ -407,7 +410,7 @@ class SystemCalculator(Runner):
             local_input['posinp'] = self._posinp_dictionary_value(posinp)
         # Creating the yaml input file
 
-        if 'input'in self.run_options:
+        if 'input' in self.run_options:
             input_file = self._get_inputfilename()
         elif 'run_names' not in self.run_options:
             input_file = os.path.join(self.run_dir, 'default.yaml')
@@ -502,7 +505,7 @@ class SystemCalculator(Runner):
             command = os.path.join(
                 os.environ['BIGDFT_ROOT'], 'bigdft-tool') + \
                 ' -a memory-estimation -l'
-            if name > 0:
+            if name != '':
                 command += ' --name=' + name
         else:
             # Adjust the command line with options

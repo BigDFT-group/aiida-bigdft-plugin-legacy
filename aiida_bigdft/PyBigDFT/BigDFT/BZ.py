@@ -2,6 +2,8 @@
 import numpy
 from futile.Utils import write as safe_print
 
+AU_eV = 27.21138386
+
 
 def get_ev(ev, keys=None, ikpt=1):
     """Get the correct list of the energies for this eigenvalue."""
@@ -24,7 +26,7 @@ def get_ev(ev, keys=None, ikpt=1):
         for k in keys:
             if k in ev:
                 res = ev[k]
-                if not isinstance(res, []):
+                if not isinstance(res, list):  # type(res) != type([]):
                     res = [res]
                 break
     return res
@@ -254,7 +256,16 @@ class BrillouinZone():
             sanity = max(sanity, numpy.dot(diff, diff))
         print('Interpolation bias', sanity)
 
-    def plot(self, path=None, npts=50):
+    def conversion_factor(self, units):
+        if units == 'AU':
+            fac = 1.0
+        elif units == 'eV':
+            fac = AU_eV
+        else:
+            raise ValueError('Unrecognized units ('+units+')')
+        return fac
+
+    def plot(self, path=None, npts=50, units='eV'):
         if path is None:
             # ppath=BZPath(self.lattice,self.special_paths[0]+['G',],self.special_points,npts)
             ppath = BZPath(
@@ -265,9 +276,18 @@ class BrillouinZone():
         import matplotlib.pyplot as plt
         # print toto.min(),toto.max()
         for b in toto.transpose():
-            plt.plot(ppath.xaxis, b)  # , 'b-')
-        plt.axhline(self.fermi_energy, color='k', linestyle='--')
+            plt.plot(ppath.xaxis, [ib * self.conversion_factor(units)
+                                   for ib in b])  # , 'b-')
+
+        plt.axhline(self.conversion_factor(units)*self.fermi_energy, color='k',
+                    linestyle='--')
         for p in ppath.xlabel:
             plt.axvline(p, color='k', linestyle='-')
             plt.xticks(ppath.xlabel, ppath.symbols)
+
+        # if units == 'eV':
+        #    plt.ylabel('Energy [eV]', fontsize=18)
+        # else:
+        #    plt.ylabel('Energy [Ha]', fontsize=18)
+
         plt.show()

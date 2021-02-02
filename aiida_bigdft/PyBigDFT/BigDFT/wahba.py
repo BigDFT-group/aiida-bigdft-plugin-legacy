@@ -73,7 +73,7 @@ def rigid_transform_3D(A, B, verbose=False):
       (float): a quantification of the error.
     """
     from futile.Utils import write as safe_print
-    from numpy import transpose, mean, tile, multiply, sqrt
+    from numpy import transpose, mean, tile, multiply, sqrt, sum
     from numpy.linalg import svd, det
 
     assert len(A) == len(B)

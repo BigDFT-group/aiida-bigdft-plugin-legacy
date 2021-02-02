@@ -1,26 +1,19 @@
 BigDFT\.Fragments module
 ========================
 
-.. automodule:: BigDFT.Fragments
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :exclude-members: Fragment, System, RotoTranslation, Rotation, Translation
-
-
 Fragment Class
 --------------
 .. autoclass:: BigDFT.Fragments.Fragment
     :members:
     :undoc-members:
     :show-inheritance:
+    :exclude-members: Fragment, System, RotoTranslation, Rotation, Translation
 
-System Class
-------------
-.. autoclass:: BigDFT.Fragments.System
+.. automodule:: BigDFT.Fragments
     :members:
     :undoc-members:
     :show-inheritance:
+    :exclude-members: Fragment, System, RotoTranslation, Rotation, Translation
 
 Transformations
 ---------------
@@ -39,9 +32,9 @@ Transformations
     :undoc-members:
     :show-inheritance:
 
-BigDFT\.Atom module
--------------------
-.. automodule:: BigDFT.Atom
-    :members:
-    :undoc-members:
-    :show-inheritance:
+BigDFT\.Fragments example
+-------------------------
+Below we show an example of using the fragment class.
+
+.. literalinclude:: ../BigDFT/Fragments.py
+   :pyobject: _example

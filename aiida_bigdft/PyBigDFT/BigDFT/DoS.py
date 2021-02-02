@@ -38,7 +38,7 @@ class DiracSuperposition():
         self.xlim = (e_min, e_max)
 
     def curve(self, xs, sigma, wgts=None):
-        import numpy as np
+        from numpy import ones
         dos_g = 0.0
         idos = 0
         for norm, dos in zip(self.norm, self.dos):
@@ -46,7 +46,7 @@ class DiracSuperposition():
                 norms = wgts[idos]*norm
                 idos += 1
             else:
-                norms = np.ones(len(dos))*norm
+                norms = ones(len(dos))*norm
             kptcurve = self.peaks(xs, dos, norms, sigma)
             dos_g += kptcurve
         return xs, dos_g
@@ -92,16 +92,25 @@ class DoS():
     """
 
     def __init__(self, bandarrays=None, energies=None, evals=None, units='eV',
-                 label='1', sigma=0.2/AU_eV, npts=2500, fermi_level=None,
-                 norm=1.0, sdos=None):
+                 label='1', sigma=0.2, npts=2500, fermi_level=None,
+                 norm=1.0, sdos=None, e_min=None, e_max=None):
         """
         Extract a quantity which is associated to the DoS, that can be plotted
         """
         import numpy as np
         self.ens = []
         self.labels = []
+        self.ef = None
         # self.norms=[]
         self.npts = npts
+        if e_min is not None: 
+            self.e_min = e_min
+        else:
+            self.e_min = 1.e100
+        if e_max is not None: 
+            self.e_max = e_max
+        else:
+            self.e_max = -1.e100
         if bandarrays is not None:
             self.append_from_bandarray(bandarrays, label)
         if evals is not None:
@@ -110,7 +119,7 @@ class DoS():
             self.append(np.array([energies]), label=label, units=units,
                         norm=(np.array([norm])
                         if isinstance(norm, float) else norm))
-        self.sigma = self.conversion_factor(units)*sigma
+        self.sigma = sigma
         self.fermi_level(fermi_level, units=units)
         if sdos is not None:
             self._embed_sdos(sdos)
@@ -214,12 +223,14 @@ class DoS():
         if fermi_level is not None:
             self.ef = fermi_level*self.conversion_factor(units)
 
-    def _set_range(self, npts=None):
+    def _set_range(self, npts=None, e_min=None, e_max=None):
         import numpy as np
         if npts is None:
             npts = self.npts
-        e_min = 1.e100
-        e_max = -1.e100
+        if e_min is None:
+            e_min = self.e_min
+        if e_max is None:
+            e_max = self.e_max
         for dos in self.ens:
             mn, mx = dos['dos'].xlim
             e_min = min(e_min, mn)
@@ -259,12 +270,12 @@ class DoS():
             safe_print(e, ' '.join(map(str, [d[i] for d in data])))
 
     def plot(self, sigma=None, legend=True, xlmin=None, xlmax=None, ylmin=None,
-             ylmax=None):
+             ylmax=None, width=6.4, height=4.8):
         import matplotlib.pyplot as plt
         from matplotlib.widgets import Slider  # , Button, RadioButtons
         if sigma is None:
             sigma = self.sigma
-        self.fig, self.ax1 = plt.subplots()
+        self.fig, self.ax1 = plt.subplots(figsize=(width, height))
         self.plotl = []
         for i, dos in enumerate(self.ens):
             # self.plotl.append(self.ax1.plot(self.range,self.curve(dos,norm=self.norms[i],sigma=sigma),label=self.labels[i]))

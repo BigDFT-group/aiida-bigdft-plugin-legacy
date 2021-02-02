@@ -12,3 +12,10 @@ BigDFT\.Spillage module
     :members:
     :undoc-members:
     :show-inheritance:
+
+BigDFT\.PostProcessing example
+------------------------------
+Below we show an example of using the PostProcessing module.
+
+.. literalinclude:: ../BigDFT/PostProcessing.py
+   :pyobject: _example

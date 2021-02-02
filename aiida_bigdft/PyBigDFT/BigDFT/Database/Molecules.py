@@ -3,8 +3,9 @@ class Molecule(dict):
 
     def __init__(self, name):
         import os
-        from BigDFT.Fragments import System, Fragment
-        from BigDFT.XYZ import XYZReader
+        from BigDFT.Fragments import Fragment
+        from BigDFT.Systems import System
+        from BigDFT.IO import XYZReader
         # import the positions of the molecules from the XYZ directory
         dirXYZ = os.path.join(os.path.dirname(__file__), 'XYZs')
         filename = os.path.abspath(os.path.join(dirXYZ, name+'.xyz'))

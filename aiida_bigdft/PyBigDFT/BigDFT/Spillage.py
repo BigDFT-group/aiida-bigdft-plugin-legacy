@@ -20,7 +20,7 @@ class MatrixMetadata:
       matdim (int): the dimension of the matrix.
     """
     def __init__(self, filename):
-        from BigDFT.Atom import Atom
+        from BigDFT.Atoms import Atom
         self.atoms = []
         symbol_lookup = []
         with open(filename, "r") as ifile:
@@ -59,11 +59,8 @@ class MatrixMetadata:
         of a system.
 
         Args:
-          system (Fragments.System): the set of fragments to get the indices
+          system (Systems.System): the set of fragments to get the indices
             of.
-
-        Return:
-          (dict): a mapping from fragment to indices.
 
         Return:
           (dict): a mapping from fragment to indices.
@@ -79,78 +76,14 @@ class MatrixMetadata:
         return frag_indices
 
 
-def compute_spillage_values(sinvxh, sinvxh2, frag_indices, target):
-    """
-    Computes the actual spillage values.
+def _get_csc(filename):
+    from scipy.sparse import csc_matrix
+    from scipy.io import mmread
 
-    Args:
-      sinvxh (scipy.sparse.csc): S^-1 * H
-      sinvxh2 (scipy.sparse.csc): (S^-1 * H)^2
-      frag_indices (dict): list of indices associated with each fragment.
-      target (int): which fragment is the target fragment.
-
-    Returns:
-      (tuple): ``H2F``,``HGHF``, where the first contribution is the target
-      value that the sum of the other contribution should reach.
-      Such second term is the interaction spillage between the target and
-      each fragment.
-    """
-    from numpy import trace
-    indices_f = frag_indices[target]
-    spillage_values = {}
-
-    # Compute the denominator tr(HRfHRf)
-    denom = sinvxh[:, indices_f]
-    denom = denom[indices_f, :]
-    denom = denom.dot(denom)
-    denom_t = trace(denom.todense())
-
-    # Compute the left side tr(HS-1HRf)
-    H2T = sinvxh2[:, indices_f]
-    H2T = H2T[indices_f, :]
-    left_t = trace(H2T.todense())
-
-    # Compute the right side values tr(HRgHRf)
-    for id_g in frag_indices:
-        indices_g = frag_indices[id_g]
-        TFH = sinvxh[indices_f, :]
-        TFHTG = TFH[:, indices_g]
-
-        TGH = sinvxh[indices_g, :]
-        TGHTF = TGH[:, indices_f]
-
-        right_mat = (TFHTG.dot(TGHTF))
-        right_t = trace(right_mat.todense())
-        spillage_values[id_g] = right_t / denom_t
-
-    return left_t / denom_t, spillage_values
-
-
-def serial_compute_spillbase(sfile, hfile):
-    """
-    This routine computes the matrix (S^-1 * H)^2 using python.
-
-    You will need this for computing the spillage values.
-
-    Args:
-      sfile (str): the file name of the overlap matrix. Must be in ccs format
-      hfile (str): the file name of the hamiltonian. Must be in ccs format
-
-     Returns:
-       (scipy.sparse.csc, scipy.sparse.csc): (S^-1 * H), (S^-1 * H)^2
-    """
-    from scipy.sparse.linalg import inv
-
-    # Read from file
-    smat = _read_ccs(sfile)
-    hmat = _read_ccs(hfile)
-
-    # Compute the matrix (S^-1H)^2
-    sinv = inv(smat)
-    sinvxh = sinv.dot(hmat)
-    sinvxh2 = sinvxh.dot(sinvxh)
-
-    return sinvxh, sinvxh2
+    if '.mtx' in filename:
+        return csc_matrix(mmread(filename))
+    else:
+        return read_ccs(filename)
 
 
 def serial_compute_puritybase(sfile, dfile):
@@ -160,20 +93,73 @@ def serial_compute_puritybase(sfile, dfile):
     You will need this for computing the purity values.
 
     Args:
-     sfile (str): the file name of the overlap matrix. Must be in ccs format
-     dfile (str): the file name of the density kernel. Must be in ccs format
+     sfile (str): the file name of the overlap matrix.
+         Must be in ccs of mtx format.
+     dfile (str): the file name of the density kernel.
+         Must be in ccs of mtx format.
 
     Returns:
       (scipy.sparse.csc, scipy.sparse.csc): K*S
     """
     # Read from file
-    smat = _read_ccs(sfile)
-    dmat = _read_ccs(dfile)
+    smat = _get_csc(sfile)
+    dmat = _get_csc(dfile)
 
     return dmat.dot(smat)
 
 
-def _read_ccs(fname):
+def serial_compute_spillagebase(sfile, hfile):
+    """
+    This routine computes the matrix S^{-1}*H using python.
+
+    You will need this for computing the spillage values.
+
+    Args:
+     sfile (str): the file name of the overlap matrix.
+         Must be in ccs of mtx format.
+     hfile (str): the file name of the hamiltonian.
+         Must be in ccs of mtx format.
+
+    Returns:
+      (scipy.sparse.csc, scipy.sparse.csc): Sinverse * H
+    """
+    # Read from file
+    smat = _get_csc(sfile)
+    hmat = _get_csc(hfile)
+
+    # Invert
+    sinvmat = invert_ccs(smat)
+
+    return sinvmat.dot(hmat)
+
+
+def invert_ccs(mat):
+    """
+    Invert a CSC matrix and restore a sparsity pattern such as it can be
+    written without the need for large files.
+
+    Args:
+       mat (csc_matrix): the sparese matrix to invert
+
+    Returns:
+       csc_matrix: the inverse
+    """
+    from numpy import array, abs
+    from scipy.sparse.linalg import inv
+    # compute the inverse
+    minv = inv(mat)
+    # create the mask
+    mask = array(abs(minv[minv.nonzero()]) < 1e-8)[0]
+    r = minv.nonzero()[0][mask]
+    c = minv.nonzero()[1][mask]
+    # Filter the matrix.
+    minv[r, c] = 0
+    minv = 0.5 * (minv + minv.T)
+    minv.eliminate_zeros()
+    return minv
+
+
+def read_ccs(fname):
     """
     Read a CCS matrix from file into a scipy csc matrix.
 
@@ -191,15 +177,23 @@ def _read_ccs(fname):
     indptr = []
 
     with open(fname, "r") as ifile:
-        # Read the meta data
+        # Read the meta data.
         line = next(ifile)
         split = line.split()
         matdim = int(split[0])
         nel = int(split[2])
         split = next(ifile).split()
-        indptr = [int(x) - 1 for x in split]
 
-        # Read the indices
+        # Read in the index pointers.
+        indptr = []
+        indntx = [int(x) - 1 for x in split]
+        indptr += indntx
+        while len(indntx) == 10000:
+            split = next(ifile).split()
+            indntx = [int(x) - 1 for x in split]
+            indptr += indntx
+
+        # Read the indices.
         added = 0
         while(added < nel):
             split = next(ifile).split()

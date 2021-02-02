@@ -94,7 +94,7 @@ class AiidaCalculator(SystemCalculator):
                 'environment_variables': {
                     "OMP_NUM_THREADS": str(self.run_options.get('omp', 1))
                 },
-                'max_wallclock_seconds': 
+                'max_wallclock_seconds':
                 self.run_options.get('walltime', 30 * 60),
                 'scheduler_stdout': '_scheduler-stdout.txt',
                 'scheduler_stderr': '_scheduler-stderr.txt'
@@ -120,8 +120,8 @@ class AiidaCalculator(SystemCalculator):
             file=os.path.abspath(self._get_inputfilename())).store()
 
         local_copy_list = [
-            (input_filedata.uuid, 
-             input_filedata.filename, 
+            (input_filedata.uuid,
+             input_filedata.filename,
              input_filedata.filename)]
         # setup pseudopotentials if needed
         for filename in self._get_inputpseudos():
@@ -148,11 +148,12 @@ class AiidaCalculator(SystemCalculator):
 #        self.job.local_options={
         retrieve_list = List()
         retrieve_list.extend(
-            [outfile, 
-             timefile, 
-             "forces*", 
-             "final*", 
+            [outfile,
+             timefile,
+             "forces*",
+             "final*",
              ["./debug/bigdft-err*", ".", 2]])
+        retrieve_list.extend(self.run_options.get('extra_retrieved_files', []))
         retrieve_list.store()
         self.metadata['options']['retrieve_list'] = retrieve_list
         local_copy_List = List()
@@ -180,7 +181,7 @@ class AiidaCalculator(SystemCalculator):
     def run(self, **kwargs):
         self._run_options(**kwargs)
         name = self.run_options.get('name', '')
-        asynchronous = self.run_options.get('async', False)
+        asynchronous = self.run_options.get('asynchronous', False)
         if self.run_options['skip'] and name in self.logfiles:
             return self.logfiles[name]
         else:
@@ -201,7 +202,7 @@ class AiidaCalculator(SystemCalculator):
                 print("setting data dir to " +
                       self.outputs[name]
                       ['retrieved']._repository._get_base_folder().abspath)
-                setattr(self.logfiles[name], "data_directory", 
+                setattr(self.logfiles[name], "data_directory",
                         self.outputs[name]
                         ['retrieved']._repository._get_base_folder().abspath)
                 return self.logfiles[name]
