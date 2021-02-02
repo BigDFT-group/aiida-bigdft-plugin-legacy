@@ -1,11 +1,7 @@
 """
 This module has the routines and data structures necessary to allow one to
-<<<<<<< HEAD
 generate visualizations of a atomic systems. We also include helper routines
 for generating colors.
-=======
-generate visualizations of a atomic systems.
->>>>>>> git subrepo commit aiida_bigdft/PyBigDFT
 
 """
 

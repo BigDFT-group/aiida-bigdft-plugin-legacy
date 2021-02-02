@@ -585,7 +585,6 @@ def calculate_dipole(inp):
       scaling approach always calculates the charge density multipoles.
     """
     __set__(inp, 'lin_general', 'calc_dipole', True)
-<<<<<<< HEAD
 
 
 def set_external_potential(inp, mm_pot):
