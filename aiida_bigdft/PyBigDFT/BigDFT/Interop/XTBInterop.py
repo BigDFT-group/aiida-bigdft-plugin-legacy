@@ -131,7 +131,6 @@ class XTBCalculator(Runner):
 
     def _get_command(self):
         from copy import deepcopy
-        from os.path import exists
 
         command = self.command
         command += " " + self.run_options.get('name', 'input') + ".tmol"

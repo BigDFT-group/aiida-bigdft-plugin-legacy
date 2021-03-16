@@ -413,7 +413,7 @@ class ClusterGrammer():
         import sys
         # redirect stdout
         old_stdout = sys.stdout
-        ftmp = tmp()
+        ftmp = tmp(mode='w+')
         sys.stdout = ftmp
         self.net.filter_names(axis, elements)
         sys.stdout = old_stdout

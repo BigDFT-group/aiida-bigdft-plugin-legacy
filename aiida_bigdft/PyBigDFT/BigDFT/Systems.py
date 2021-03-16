@@ -104,7 +104,8 @@ class System(MutableMapping):
         #     x["q0"][0] for x in ret_dict["values"])
         return ret_dict
 
-    def get_k_nearest_fragments(self, target, k, cutoff=None):
+    def get_k_nearest_fragments(self, target, k, cutoff=None,
+                                return_type='list'):
         """
         Given a fragment id in a system, this computes the nearest fragment.
 
@@ -112,9 +113,11 @@ class System(MutableMapping):
           target (str): the fragment to find the nearest neighbor of.
           k (int): the number of fragments to look for.
           cutoff (float): will only return fragments with a certain cutoff.
-
+          return_type (str): 'list' or 'dict'
         Returns:
-          (list): the ids of the nearest fragments.
+          (list, dict): the ids of the nearest fragments, or their distances
+              as values in the case in which 'dict' is provided in the
+              `return_type` argument
         """
         from scipy.spatial import KDTree
 
@@ -161,14 +164,19 @@ class System(MutableMapping):
 
         # Extract the k smallest values.
         minlist = []
+        mindict = {}
         for i in range(0, k):
             if len(distdict) == 0:
                 break
             key = min(distdict, key=distdict.get)
             minlist.append(key)
+            mindict[key] = distdict[key]
             del distdict[key]
 
-        return minlist
+        if return_type == 'list':
+            return minlist
+        elif return_type == 'dict':
+            return mindict
 
     def get_nearest_fragment(self, target):
         """
@@ -419,7 +427,8 @@ class System(MutableMapping):
         from scipy.spatial import KDTree
 
         # Convert everything to pure positions to avoid overhead.
-        poslist = [array(Atom(x).get_position("bohr")) for x in atlist]
+        poslist = [array(Atom(x).get_position("bohr", cell=self.cell))
+                   for x in atlist]
         if shift is not None:
             poslist = [x - array(shift) for x in poslist]
         tree = KDTree(poslist)

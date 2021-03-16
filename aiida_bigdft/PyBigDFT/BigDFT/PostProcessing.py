@@ -583,39 +583,37 @@ class BigDFTool(object):
                                                     csr_matrix(kxs))
         return interaction_energy
 
-    def fragment_population(self, sys, fragid, log, kxs=None):
+    def fragment_population(self, sys, log, frag_indices=None, kxs=None):
         """
         Performs Mulliken population analysis on a fragment, in case charges
         haven't been computed by doing a multipole analysis.
 
         Args:
-          sys (BigDFT.Systems.System): the system containing the fragment
-            of interest
-          frag (str): the fragment to compute the charge of.
+          sys (BigDFT.Systems.System): the system to compute the population of.
           log (BigDFT.Logfiles.Logfile): the log describing a calculation.
+          frag_indices (dict): the matrix indices associated with each
+            fragment.
           kxs (scipy.sparse.csc_matrix): the matrix K*S, which might be already
             computed to reduce I/O time.
 
         Return:
-          (float): the amount of charge on a fragment.
+          (dict): a mapping from fragment ids to charges.
         """
         from numpy import trace
-        from BigDFT.Systems import System
 
         if kxs is None:
             kxs = self.get_matrix_kxs(log)
+        if frag_indices is None:
+            frag_indices = self.get_frag_indices(sys, log)
 
-        # Get the metadata. It's faster if we perform this operation on
-        # a system with just the fragment we're interested in.
-        subsys = System()
-        subsys[fragid] = sys[fragid]
-        frag_indices = self.get_frag_indices(subsys, log)
-        indices = frag_indices[fragid]
+        charges = {}
+        for fragid in sys:
+            smat = kxs[:, frag_indices[fragid]]
+            smat = smat[frag_indices[fragid], :]
+            charges[fragid] = sum(x.nel for x in sys[fragid]) - \
+                trace(smat.todense())
 
-        smat = kxs[:, indices]
-        smat = smat[indices, :]
-
-        return sum(x.nel for x in sys[fragid]) - trace(smat.todense())
+        return charges
 
     def generate_link_atoms(self, fullsys, subsys, distcut=6.0):
         """
@@ -1303,6 +1301,10 @@ def _example():
 
     # Bond Orders
     bo = btool.fragment_bond_order(sys, sys.keys(), sys.keys(), log)
+
+    # Population values.
+    population = btool.fragment_population(sys, log)
+    print(population)
 
     # These three things define a fragment view.
     view = FragmentView(purity, bo, charges)

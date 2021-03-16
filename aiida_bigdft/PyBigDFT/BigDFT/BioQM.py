@@ -863,8 +863,10 @@ class BioSystem(System):
                 if self.fragment_ids[f] == lb:
                     relb = lb
                     for ch in self.chains_to_residues:
-                        if relb >= len(ch):
-                            relb -= len(ch)
+                        if relb < len(ch):
+                            break
+                        # if relb >= len(ch):
+                        relb -= len(ch)
                     label[f] = str(relb+1)
                 else:
                     label[f] = '   '
@@ -1107,17 +1109,30 @@ class BioSystem(System):
             ifig += 1
         return fig
 
-    def display_graph(self, restrict_to=None, **kwargs):
+    def display_graph(self, restrict_to=None, bo_cutoff=0.01,
+                      fragment_labels=None, **kwargs):
         """
         Display a graph view of the system
 
         Args:
            restrict_to (list): list of fragmens to which the graph
                  has to be restricted
+           bo_cutoff (float): the limit for a non-negligible chemical link
+           fragment_labels (list, dict): list (in fragment_names order) of the
+               labels of the fragments or dictionary of the fragments which
+               need relabelling
            **kwargs: colordict args
         """
-        G = Graph(self.fragment_names, self.bond_orders, self.fragment_letters,
-                  restrict_to=restrict_to)
+        labels = self.fragment_letters
+        if fragment_labels is not None:
+            if isinstance(fragment_labels, dict):
+                for ifrag, frag in enumerate(self.fragment_names):
+                    if frag in fragment_labels:
+                        labels[ifrag] = fragment_labels[frag]
+            else:
+                labels = fragment_labels
+        G = Graph(self.fragment_names, self.bond_orders, labels,
+                  restrict_to=restrict_to, cutoff=bo_cutoff)
 
         colord = self.colordict(**kwargs)
 
@@ -1576,7 +1591,9 @@ def interaction_strengths(fragments, target_fragments, pairwise_bo):
     BOtot = np.zeros(len(fragments))
     for ipair in lookup:
         frag_i = fragments[ipair]
-        BOtot += np.array([pairwise_bo[frag_i][frag] for frag in fragments])
+        BOtot += np.array(
+            [0.5*(pairwise_bo[frag_i][frag] + pairwise_bo[frag][frag_i])
+             for frag in fragments])
     if len(lookup) > 0:
         BOtot[np.array(lookup)] = np.nan
     return BOtot

@@ -14,7 +14,7 @@ def convert_system_to_babel(sys):
     Convert a BigDFT system to an open babel molecule.
 
     Args:
-      frag (BigDFT.Systems.System): the system to convert.
+      sys (BigDFT.Systems.System): the system to convert.
 
     Returns:
       (openbabel.OBMol): an open babel type molecule.
@@ -49,10 +49,10 @@ def convert_babel_to_system(mol):
     Convert a BigDFT fragment to an open babel molecule.
 
     Args:
-      frag (BigDFT.Fragments.Fragment): the fragment to convert.
+      mol (openbabel.OBMol): the molecule to convert.
 
     Returns:
-      (openbabel.OBMol): an open babel type molecule.
+      (BigDFT.Systems.System): bigdft system.
     """
     from BigDFT.IO import read_mol2
     from openbabel.openbabel import OBConversion
@@ -122,7 +122,7 @@ def system_energy(sys, forcefield="MMFF94", verbose=False):
     Compute the energy of a system using an openbabel forcefield.
 
     Args:
-      frag (BigDFT.Systems.System): the system to compute.
+      sys (BigDFT.Systems.System): the system to compute.
       forcefield (str): the type of forcefield to use.
       verbose (bool): whether to have openbabel run in verbose mode.
 
@@ -150,7 +150,7 @@ def optimize_system(sys, forcefield="MMFF94", method="SteepestDescent",
     Optimize the geometry of a given fragment.
 
     Args:
-      frag (BigDFT.Systems.System): the fragment to optimize.
+      sys (BigDFT.Systems.System): the fragment to optimize.
       forcefield (str): the type of forcefield to use.
       verbose (bool): if True, the openbabel output will be printed.
 
@@ -218,6 +218,61 @@ def molecular_dynamics(sys, steps, temperature, forcefield="MMFF94",
     return newsys
 
 
+def compute_system_forces(sys, forcefield="MMFF94", verbose=False):
+    """
+    Assign the forces of a system using an openbabel forcefield.
+
+    Args:
+      sys (BigDFT.Systems.System): the system to compute.
+      forcefield (str): the type of forcefield to use.
+      verbose (bool): whether to have openbabel run in verbose mode.
+
+    Returns:
+      (float): the energy of the system.
+    """
+    from openbabel.openbabel import OBForceField, OBFF_LOGLVL_LOW
+    from BigDFT.Atoms import Atom, number_to_symbol, AU_to_A
+
+    # Handle verbository.
+    if verbose:
+        ff.SetLogToStdOut()
+        ff.SetLogLevel(OBFF_LOGLVL_LOW)
+
+    # Setup the forcefield
+    ff = OBForceField.FindForceField(forcefield)
+    mol = convert_system_to_babel(sys)
+    ff.Setup(mol)
+
+    # Compute the forces.
+    energy_out = ff.Energy() * _energy_conversion[ff.GetUnit()]
+    gradients = []
+    for idx in range(1, mol.NumAtoms()+1):
+        at = mol.GetAtom(idx)
+        grad = ff.GetGradient(at)
+        convgrad = [grad.GetX(), grad.GetY(), grad.GetZ()]
+        convgrad = [x * _energy_conversion[ff.GetUnit()]/AU_to_A
+                    for x in convgrad]
+        gradients.append(convgrad)
+
+    # Create the atom list for the compute matching procedure.
+    atom_list = []
+    for idx in range(1, mol.NumAtoms()+1):
+        obat = mol.GetAtom(idx)
+        atnum = obat.GetAtomicNum()
+        pos = [obat.GetX(), obat.GetY(), obat.GetZ()]
+        atom_list.append(Atom({number_to_symbol(atnum): pos,
+                               "units": "angstroem"}))
+    lookup = sys.compute_matching(atom_list)
+
+    # Assign
+    for fragid, frag in sys.items():
+        for i, at in enumerate(frag):
+            idx = lookup[fragid][i]
+            at.set_force(gradients[idx])
+
+    return energy_out
+
+
 def _setup_constraints(forcefield, constraints):
     """
     This helper routine takes a list of constraints and updates
@@ -257,6 +312,12 @@ def _example():
 
     # The energy.
     print(system_energy(sys, forcefield="UFF"))
+
+    # Extract the forces.
+    compute_system_forces(sys, forcefield="UFF")
+    for frag in sys.values():
+        for at in frag:
+            print(at["force"])
 
     # Optimize the geometry.
     sys2 = optimize_system(sys, forcefield="UFF")

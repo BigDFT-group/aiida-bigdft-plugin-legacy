@@ -20,21 +20,16 @@ Note:
    used to a dictionary instance or to a BigDFT input files.
    See the example :ref:`input_action_example`.
 
-Note:
+We now list the available methods, in order of category.
 
-   Each of the actions here **must** have default value for the arguments
-   (except the input dictionary ``inp``). This is needed for a good behaviour
-   of the function `remove`.
-
+Basic Setup and common functionalities
+--------------------------------------------
 
 .. autosummary::
 
-   remove
    set_xc
    set_hgrid
    set_rmult
-   set_wavefunction_convergence
-   set_atomic_positions
    set_mesh_sizes
    optimize_geometry
    spin_polarize
@@ -42,26 +37,64 @@ Note:
    charge_and_polarize
    set_symmetry
    apply_electric_field
+   add_empty_scf_orbitals
+   extract_virtual_states
+   set_electronic_temperature
+   set_implicit_solvent
+   set_dispersion_correction
+
+Self-Consistent-Field setup and algorithms
+-------------------------------------------
+
+.. autosummary::
+
+   set_scf_convergence
    set_random_inputguess
+   set_linear_scaling
+   set_scf_method
+   set_kernel_guess
+   optimize_kernel
+   optimize_coefficients
+   optimize_support_functions
+
+Input-Output and restart
+------------------------
+
+.. autosummary::
+
    write_orbitals_on_disk
    read_orbitals_from_disk
    write_density_on_disk
-   calculate_dipole
-   use_gpu_acceleration
    change_data_directory
    connect_run_data
-   add_empty_SCF_orbitals
-   extract_virtual_states
-   set_electronic_temperature
-   calculate_tddft_coupling_matrix
    write_support_function_matrices
+   write_cubefiles_around_fermi_level
+   write_support_functions_on_disk
+
+
+Setting atomic-based information, other functionalities
+-------------------------------------------------------
+
+.. autosummary::
+
+   set_atomic_positions
+   calculate_dipole
+   use_gpu_acceleration
+   set_orbital_occupancy
+   calculate_tddft_coupling_matrix
    set_external_potential
-   set_implicit_solvent
-   set_dispersion_correction
    set_psp_directory
    set_psp_file
+   load
+   remove
 
+Note:
 
+   Each of the actions here **must** have default value for the arguments
+   (except the input dictionary ``inp``). This is needed for a good behaviour
+   of the function `remove`.
+
+We list here the extended documentation in alphabetic order.
 """
 
 from futile.Utils import dict_set
@@ -110,7 +143,7 @@ def remove(inp, action):
        >>> log=code.run(input=inp) # perform calculations
        >>> remove(inp, write_orbitals_on_disk) #remove the action
        >>> read_orbitals_from_disk(inp)
-       >>> # this will restart the SCF from the previous orbitals
+       >>> # this will restart the scf from the previous orbitals
        >>> log2=code.run(input=inp)
     """
     global __set__
@@ -130,15 +163,19 @@ def set_hgrid(inp, hgrids=0.4):
     __set__(inp, 'dft', 'hgrids', hgrids)
 
 
-def set_wavefunction_convergence(inp, gnrm=1.0e-04):
+def set_scf_convergence(inp, gnrm='default', rpnrm='default'):
     """
     Set the tolerance acceptance level for stopping the self-consistent
-    iterations
+    iterations. Useful both for LS and CS
 
     Args:
-       gnrm (float): the tolerance level
+       gnrm (float): the tolerance level for the CS inner loop
+       rpnrm (float): residue for the density/or potential norm. Useful both
+           for CS and LS
     """
     __set__(inp, 'dft', 'gnrm_cv', gnrm)
+    __set__(inp, 'lin_general', 'rpnrm_cv', rpnrm)
+    __set__(inp, 'mix', 'rpnrm_cv', rpnrm)
 
 
 def set_rmult(inp, rmult=None, coarse=5.0, fine=8.0):
@@ -238,20 +275,18 @@ def charge_and_polarize(inp):
     spin_polarize(inp, mpol=1)
 
 
-def set_SCF_method(inp, method='dirmin', mixing_on='density',
-                   mixing_scheme='Pulay'):
+def set_scf_method(inp, method='dirmin', mixing_on='density',
+                   mixing_scheme='Pulay', ):
     """
-    Set the algorithm for SCF.
+    Set the algorithm for scf.
 
     Args:
        method (str): The algoritm chosen. Might be different for the cubic (CS)
          or linear scaling (LS) algorithm.
-         * dirmin: Direct minimization approach (valid both to LS and CS)
+         * dirmin: Direct minimization approach (only CS)
          * mixing: Mixing scheme (only CS)
-         * foe: Fermi Operator Expansion (only LS)
-         * pexsi: Pole EXpansion and Selected Inversion method (only LS,
-             require PEXSI compilation)
-         * diag: Explicit diagonalization (only LS, for validation purposes)
+         * hybrid: outer loop of the LS mode
+         * two_levels: two level of accuracy in the scf
 
        mixing_on (str): May be ``"density"`` or ``"potential"`` in the
          ``"mixing"`` case, decide to which quantity the mixing to be performed
@@ -278,30 +313,34 @@ def set_SCF_method(inp, method='dirmin', mixing_on='density',
 
     """
     method.upper()
-    if method != 'MIXING':
-        __set__(inp, 'lin_kernel', 'linear_method', method)
     if method == 'DIRMIN':
         __set__(inp, 'mix', 'iscf', 0)
         return
-    iscf = 0
-    if mixing_on == 'density':
-        iscf += 10
-    if mixing_scheme == 'Pulay':
-        iscf += 7
-    if mixing_scheme == 'Anderson':
-        iscf += 3
-    if mixing_scheme == 'Anderson2':
-        iscf += 4
-    if mixing_scheme == 'Simple':
-        iscf += 2
-    if mixing_scheme == 'CG':
-        iscf += 5
-    __set__(inp, 'mix', 'iscf', iscf)
+    if method == 'MIXING':
+        iscf = 0
+        if mixing_on == 'density':
+            iscf += 10
+        if mixing_scheme == 'Pulay':
+            iscf += 7
+        if mixing_scheme == 'Anderson':
+            iscf += 3
+        if mixing_scheme == 'Anderson2':
+            iscf += 4
+        if mixing_scheme == 'Simple':
+            iscf += 2
+        if mixing_scheme == 'CG':
+            iscf += 5
+        __set__(inp, 'mix', 'iscf', iscf)
+        return
+    if method == 'HYBRID':
+        __set__(inp, 'lin_general', 'hybrid', True)
+    if method == 'TWO_LEVELS':
+        __set__(inp, 'lin_general', 'hybrid', False)
 
 
-def add_empty_SCF_orbitals(inp, norbs=10):
+def add_empty_scf_orbitals(inp, norbs=10):
     """
-    Insert ``norbs`` empty orbitals in the SCF procedure
+    Insert ``norbs`` empty orbitals in the scf procedure
 
     Args:
        norbs (int): Number of empty orbitals
@@ -347,9 +386,17 @@ def write_orbitals_on_disk(inp, format='binary'):
     __set__(inp, 'output', 'orbitals', fmt)
 
 
-def write_support_functions_on_disk(inp, format='binary', matrices=True,
-                                    coefficients=False):
-    pass
+def write_support_functions_on_disk(inp, format='text'):
+    """Dump the support functions.
+
+    Write the support function which are expressed in wavelet basis in the
+    code as files at the end of the calculation.
+
+    Args:
+        format (str): the format of the data, can be 'text', 'ETSF' or 'binary'
+             or one of the allowed codes of the `output_wf` key.
+    """
+    __set__(inp, 'lin_general', 'output_wf', format)
 
 
 def write_support_function_matrices(inp, format='text'):
@@ -380,9 +427,15 @@ def set_atomic_positions(inp, posinp=None):
     __set__(inp, 'posinp', posinp)
 
 
-def read_orbitals_from_disk(inp):
+def read_orbitals_from_disk(inp, mode='cubic'):
     """
-    Read the orbitals from data directory, if available
+    Read the orbitals from data directory, if available.
+
+    Args:
+        mode (str): can be 'cubic' or 'linear'. In the first case,
+            orbitals are read as KS objects, whereas in the
+            second kernel (or coeffs) and support functions are
+            expressed.
     """
     newid = 2
     previous_ipid = inp.get('dft', 'False')
@@ -390,7 +443,26 @@ def read_orbitals_from_disk(inp):
         previous_ipid = inp.get('inputpsiid', 'False')
     if previous_ipid == 'linear' or previous_ipid == 100:
         newid = 102
+    if mode == 'linear':
+        newid = 102
     __set__(inp, 'dft', 'inputpsiid', newid)
+
+
+def set_kernel_guess(inp, mode='kernel'):
+    """ Method for guessing the kernel at restart.
+
+    Args:
+        mode (str): Guessing method. Can be:
+           * kernel
+           * coefficients
+           * random
+           * diag
+           * weight
+           * ao
+           * full_kernel
+           * full_coefficients
+    """
+    __set__(inp, 'lin_general', 'kernel_restart_mode', mode)
 
 
 def set_random_inputguess(inp):
@@ -417,17 +489,21 @@ def optimize_geometry(inp, method='FIRE', nsteps=50, betax=4.0, frac_fluct=1.0,
     Args:
        nsteps (int): maximum number of atomic steps.
        method (str): Geometry optimizer. Available keys:
+
           * SDCG:   A combination of Steepest Descent and Conjugate Gradient
+
           * VSSD:   Variable Stepsize Steepest Descent method
+
           * LBFGS:  Limited-memory BFGS
+
           * BFGS:   Broyden-Fletcher-Goldfarb-Shanno
-          * PBFGS:  Same as BFGS with an initial Hessian obtained from a force
-                    field
+
+          * PBFGS:  Same as BFGS with an initial Hessian from a force field
+
           * DIIS:   Direct inversion of iterative subspace
-          * FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et
-                    al.
-          * SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by
-                    SQNM in future release
+
+          * FIRE:   Fast Inertial Relaxation Engine, described by Bitzek et al.
+
           * SQNM:   Stabilized quasi-Newton minimzer
        betax (float): the step size for the optimization method.
           This stepsize is system dependent and it has therefore to be
@@ -458,7 +534,7 @@ def set_xc(inp, xc='PBE'):
 
 def write_density_on_disk(inp):
     """
-    Write the charge density on the disk after the last SCF convergence
+    Write the charge density on the disk after the last scf convergence
     """
     __set__(inp, 'dft', 'output_denspot', 21)
 
@@ -475,7 +551,7 @@ def use_gpu_acceleration(inp):
     __set__(inp, 'psolver', 'setup', 'accel', 'CUDA')
 
 
-def set_wavefunction_iterations(inp, nit=[50, 1]):
+def set_scf_iterations(inp, nit=[50, 1]):
     """
     Set the number of the iteration per loop
 
@@ -485,7 +561,8 @@ def set_wavefunction_iterations(inp, nit=[50, 1]):
             the number of iterations of the direct minimization loop. if
             ``nit`` is a scalar, only this contribution is taken into account.
             The second element is the number of subspace iterations where the
-            hamiltonian is diagonalized in the subspace.
+            hamiltonian is diagonalized in the subspace. For a LS calculation,
+            the number of iteration correspond to the levels of the outer loop.
     """
     try:
         nlen = len(nit)
@@ -497,6 +574,7 @@ def set_wavefunction_iterations(inp, nit=[50, 1]):
         __set__(inp, 'dft', 'nrepmax', nit[1])
     if nlen == 0:
         __set__(inp, 'dft', 'itermax', nit)
+    __set__(inp, 'lin_general', 'nit', nit)
 
 
 def change_data_directory(inp, name=''):
@@ -650,3 +728,91 @@ def set_psp_directory(inp, directory='.'):
     for psp in file_list(directory, prefix='psppar',
                          include_directory_path=True):
         set_psp_file(inp, filename=psp)
+
+
+def load(inp, profile='', profiles=[]):
+    """Load a profile or list of profiles.
+
+    Args:
+       profile (str): profile to be loaded, if a single profile is employed.
+       profiles (list): profiles list to be loaded in subsequent order.
+    """
+    if len(profile) > 0:
+        prof = profile
+    else:
+        prof = profiles
+    __set__(inp, 'import', prof)
+
+
+def optimize_kernel(inp, method='DIAG', dynamic_convergence=True, nit=5,
+                    rpnrm=1.e-10, alphamix=0.5):
+    """Methods for scf of the density kernel.
+
+    Strategies for the optimization of the kernel.
+
+    Args:
+        dynamic_convergence (bool): if False, the threshold for the
+             convergence of the kernel are not dynamically adjusted
+        nit (int): number of scf iterations
+        rpnrm (float): convergence criterion, change in density/potential
+        method (str): optimization method ('DIRMIN', 'DIAG', 'NTPOLY', 'FOE')
+        alphamix (float): mixing parameter
+    """
+    if not dynamic_convergence:
+        __set__(inp, 'perf', 'adjust_kernel_iterations', False)
+        __set__(inp, 'perf', 'adjust_kernel_threshold', False)
+        __set__(inp, 'lin_kernel', 'delta_prnm', -1)
+    __set__(inp, 'lin_kernel', 'nit', nit)
+    __set__(inp, 'lin_kernel', 'rpnrm_cv', rpnrm)
+    __set__(inp, 'lin_kernel', 'linear_method', method)
+    __set__(inp, 'lin_kernel', 'alphamix', alphamix)
+
+
+def optimize_coefficients(inp, nit=1, gnrm=1.e-5):
+    """Methods for scf of the kernel coefficients.
+
+    Args:
+        nit (int): number of scf iterations
+        gnrm (float): convergence criterion on the residue
+    """
+    __set__(inp, 'lin_kernel', 'gnrm_cv_coeff', gnrm)
+    __set__(inp, 'lin_kernel', 'nstep', nit)
+
+
+def optimize_support_functions(inp, nit=1, gnrm=1.e-6, diis_history=0):
+    """Methods for scf of the Support functions.
+
+    Args:
+        nit (int): number of scf iterations
+        gnrm (float): convergence criterion on the residue
+    """
+    __set__(inp, 'lin_basis', 'gnrm_cv', gnrm)
+    __set__(inp, 'lin_basis', 'nit', nit)
+    __set__(inp, 'lin_basis', 'idsx', diis_history)
+
+
+def set_orbital_occupancy(inp, avg={}, up={}, down={}, kpoint=1):
+    """Control the occupation number of the KS orbitals.
+
+    With this funtionality one can fix the value of the occupation numbers of
+    the KS orbitals.
+
+    Args:
+       avg (dict): dictionary of the form {i: f} where i is an integer stating
+           the non-default value of the occupation number, for spin averaged
+           occupancy
+       up (dict): same as `avg` but for the up spin channel
+       down (dict): same as `avg` but for the down spin channel
+       kpoint (int): label of the kpoint associated to the occupancy
+    """
+    def orb_dict(dict):
+        return {'Orbital '+str(i): f for i, f in dict.items()}
+    spin_dict = {}
+    if len(up) > 0:
+        spin_dict['up'] = orb_dict(up)
+    if len(down) > 0:
+        spin_dict['down'] = orb_dict(down)
+    if len(avg) > 0:
+        spin_dict = orb_dict(avg)
+    occupation_dict = {'K point '+str(kpoint): spin_dict}
+    __set__(inp, 'occupation', str(occupation_dict))

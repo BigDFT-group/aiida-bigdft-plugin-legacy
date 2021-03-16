@@ -42,7 +42,7 @@ class OMMSystem(System):
             sys = read_pdb(open(filename))
         elif system is not None:
             sys = system
-            ofile = tmp('w')
+            ofile = tmp('w+')
             write_pdb(system=system, ofile=ofile)
             ofilename = ofile.name
             pdb = PDBFile(open(ofilename))

@@ -65,3 +65,5 @@ class Inputfile(dict):
             from functools import partial
             func = getattr(A, action)
             setattr(self, action, partial(func, self))
+            method = getattr(self, action)
+            method.__doc__ = func.__doc__
