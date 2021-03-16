@@ -36,6 +36,15 @@ class PluginSystemCalculator(BigDFT_calc.SystemCalculator):
                                     dry_run=dry_run, skip=skip, verbose=verbose)
         self.command = ""
 
+    # run_dir location in aiida case does not really matter, as it's temporary only.
+    def _ensure_run_directory(self):
+        from futile.Utils import ensure_dir
+        run_dir = self.run_options.get('run_dir', '.')
+        # Create the run_dir if not exist
+        if ensure_dir(run_dir) and self.run_options['verbose']:
+            print("Create the sub-directory '%s'" % run_dir)
+        self.run_dir = run_dir
+
 
 class BigDFTCalculation(CalcJob):
     """
@@ -133,14 +142,14 @@ class BigDFTCalculation(CalcJob):
         if "jobname" in self.inputs.metadata.options:
             bigdft_calc.update_global_options(
                 name=self.inputs.metadata.options.jobname)
-        bigdft_calc._run_options(input=dico)
+        bigdft_calc._run_options(input=dico, run_dir=folder.abspath)
         bigdft_calc.pre_processing()
         if "jobname" not in self.inputs.metadata.options:
             input_filename = self._INPUT_FILE_NAME
         else:
             input_filename = self.inputs.metadata.options.jobname + ".yaml"
         input_filedata = SinglefileData(
-            file=os.path.abspath(input_filename)).store()
+            file=folder.get_abs_path(input_filename)).store()
         local_copy_list.append(
             (input_filedata.uuid, input_filedata.filename, input_filename))
 
