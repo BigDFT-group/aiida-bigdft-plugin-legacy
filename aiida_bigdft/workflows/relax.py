@@ -108,13 +108,13 @@ class BigDFTRelaxWorkChain(WorkChain):
                 extension = "yaml"
         if self.inputs.relax.perform:
             outstruct = "final_posinp." + extension
-            repo = workchain.outputs.retrieved._repository._get_base_folder()
+            repo = workchain.outputs.retrieved
             if "jobname" in self.inputs.run_opts.get_dict()['options']:
                 outstruct = "final_" +\
                     self.inputs.run_opts.get_dict(
                     )['options']['jobname'] + ".xyz"
             try:
-                sf = repo.get_abs_path(outstruct, check_existence=True)
+                sf = repo.get_object_content(outstruct)
             except OSError:
                 # final_*xyz file not found, it did not finish.
                 # We can output last *xyz file in data folder, restart, or fail
@@ -124,28 +124,28 @@ class BigDFTRelaxWorkChain(WorkChain):
                     subname = subname + "-" +\
                         self.inputs.run_opts.get_dict()['options']['jobname']
 
-                data_folder = repo.get_subfolder(subname)
+                data_folder = repo.get_object_content(subname)
                 posout_list = data_folder.get_content_list(pattern="posout*")
                 if not posout_list:
                     # not even, we failed. Should have been caught before.
                     self.report(
                         'Relaxation failed - no output found')
                     return self.exit_codes.ERROR_FAILED_RELAX
-                sf = repo.get_abs_path(posout_list.sort()[-1])
+                sf = repo.get_object_content(posout_list.sort()[-1])
         else:
             # no relaxation performed, file is named forces_posinp.xyz .. or yaml
 
             outstruct = "forces_posinp." + extension
-            repo = workchain.outputs.retrieved._repository._get_base_folder()
+            repo = workchain.outputs.retrieved
             if "jobname" in self.inputs.run_opts.get_dict()['options']:
                 outstruct = "forces_" +\
                     self.inputs.run_opts.get_dict(
                     )['options']['jobname'] + ".xyz"
             try:
-                sf = repo.get_abs_path(outstruct, check_existence=True)
+                sf = repo.get_object_content(outstruct)
             except OSError:
                 self.report(
-                    'Relaxation failed - no output found')
+                    'Relaxation failed - no output found named ', outstruct)
                 return self.exit_codes.ERROR_FAILED_RELAX
 
         s = StructureData()
@@ -153,13 +153,8 @@ class BigDFTRelaxWorkChain(WorkChain):
         # Get rid of them (and get energy and forces in the process)
 
         if extension == "xyz":
-            try:
-                with open(sf) as f:
-                    content = f.readlines()
-            except FileNotFoundError:
-                self.report(
-                    'Relaxation failed - no output position file found')
-                return self.exit_codes.ERROR_FAILED_RELAX
+            import io
+            content=io.StringIO(sf).readlines()
             firstline = content[0].split()
             content[0] = firstline[0] + '\n'
             self.out('total_energy', orm.Float(float(firstline[2]) * HARTREE_TO_EV).store())

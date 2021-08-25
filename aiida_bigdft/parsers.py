@@ -101,11 +101,21 @@ class BigDFTParser(Parser):
 
         # add output file
         self.logger.info("Parsing '{}'".format(output_filename))
-#        print(self.retrieved._repository._get_base_folder().get_abs_path(output_filename))
-        output = BigDFTLogfile(self.retrieved._repository._get_base_folder().
-                               get_abs_path(output_filename))
+        try:
+            with tempfile.NamedTemporaryFile(mode='w+') as tmp:
+                tmp.write(self.retrieved.get_object_content(output_filename))
+                output = BigDFTLogfile(tmp.name)
+
+
+        except ValueError:
+            self.logger.error("Impossible to parse LogFile".
+                              format(output_filename))
+            if not error:  # if we already have OOW or OOM, failure here will be handled later
+                return self.exit_codes.ERROR_PARSING_FAILED
         try:
             output.store()
+            self.logger.info("Successfully parsed LogFile '{}'".
+                             format(output_filename))
         except ValidationError:
             self.logger.info("Impossible to store LogFile - ignoring '{}'".
                              format(output_filename))

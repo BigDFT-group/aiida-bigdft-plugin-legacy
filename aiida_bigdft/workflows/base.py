@@ -10,7 +10,7 @@ from aiida.plugins import CalculationFactory, DataFactory
 from aiida.engine.processes.workchains.utils import process_handler, ProcessHandlerReport
 
 from futile import YamlIO
-
+import re
 Dict = DataFactory('dict') 
 
 RemoteData = DataFactory('remote') 
@@ -55,21 +55,22 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
     def check_out_of_mem(self, node):
         self.report_error_handled(node, 'OOM - simply restart from the last calculation')
         return ProcessHandlerReport(do_break=True)
+
     @process_handler(priority=600)
     def check_debug_output(self, calculation):
-        repo = calculation.outputs.retrieved._repository._get_base_folder()
-        try:
-            repo.get_abs_path('debug', check_existence=True)
-        except OSError:
-            return
-        debug_folder = repo.get_subfolder('debug')
+        repo = calculation.outputs.retrieved
         # debug folder exists, error probably happened.
         if "jobname" in self.ctx.inputs.metadata.options:
             jobname = self.ctx.inputs.metadata.options.jobname
         else:
             jobname = 'BigDFT job'
-        posout_list = debug_folder.get_content_list(pattern="bigdft-err*")
+        try:
+            posout_list = repo.list_objects('debug')
+        except FileNotFoundError:
+            return
         for filename in posout_list:
+            if not re.match(".*bigdft-err*", filename):
+                continue
             log = YamlIO.load(debug_folder.get_abs_path(filename))
             err = log[0].get('BIGDFT_INPUT_VARIABLES_ERROR')
             info = log[0].get('Additional Info')
