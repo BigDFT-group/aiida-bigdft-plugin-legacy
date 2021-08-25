@@ -180,7 +180,9 @@ class BigDFTCalculation(CalcJob):
         calcinfo.retrieve_list = [outfile,
                                   timefile,
                                   "forces_posinp.yaml",
+                                  "forces_posinp.xyz",
                                   "final_posinp.yaml",
+                                  "final_posinp.xyz",
                                   ["./debug/bigdft-err*", ".", 2]]
         calcinfo.retrieve_list.extend(self.inputs.extra_retrieved_files)
         return calcinfo
