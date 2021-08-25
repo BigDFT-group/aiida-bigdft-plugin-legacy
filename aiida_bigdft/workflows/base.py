@@ -40,12 +40,21 @@ class BigDFTBaseWorkChain(BaseRestartWorkChain):
             cls.results,
         )
         spec.expose_outputs(BigDFTCalculation)
-        #this one needs to be optional to avoid being checked wrongly by the restartworkchain
+        # this one needs to be optional to avoid being checked wrongly by the restartworkchain
         spec.exit_code(100, 'ERROR_INPUT',
                        message='BigDFT input error')
         spec.exit_code(200, 'ERROR_RUNTIME',
                        message='BigDFT runtime error')
 
+    @process_handler(priority=610, exit_codes=BigDFTCalculation.exit_codes.ERROR_OUT_OF_WALLTIME)
+    def check_out_of_time(self, node):
+        self.report_error_handled(node, 'OOW - simply restart from the last calculation')
+        return ProcessHandlerReport(do_break=True)
+
+    @process_handler(priority=620, exit_codes=BigDFTCalculation.exit_codes.ERROR_OUT_OF_MEMORY)
+    def check_out_of_mem(self, node):
+        self.report_error_handled(node, 'OOM - simply restart from the last calculation')
+        return ProcessHandlerReport(do_break=True)
     @process_handler(priority=600)
     def check_debug_output(self, calculation):
         repo = calculation.outputs.retrieved._repository._get_base_folder()

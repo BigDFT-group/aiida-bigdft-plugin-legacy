@@ -84,6 +84,12 @@ class BigDFTCalculation(CalcJob):
                     help='BigDFT log file as a dict')
         spec.exit_code(100, 'ERROR_MISSING_OUTPUT_FILES',
                        message='Calculation did not produce all expected output files.')
+        spec.exit_code(101, 'ERROR_PARSING_FAILED',
+                       message='Calculation did not produce all expected output files.')
+        spec.exit_code(400, 'ERROR_OUT_OF_WALLTIME',
+                       message='Calculation did not finish because of a walltime issue.')
+        spec.exit_code(401, 'ERROR_OUT_OF_MEMORY',
+                       message='Calculation did not finish because of memory limit')
 
     def prepare_for_submission(self, folder):
         """

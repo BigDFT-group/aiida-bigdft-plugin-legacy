@@ -130,6 +130,11 @@ class BigDFTLogfile(Data):
         :raise ValueError:
         """
         self.bigdftlogfile = Logfiles.Logfile(path)
+
+        # Check that the run finished properly. Probable timeout if not.
+#        if not self.bigdftlogfile.log.get('Walltime since initialization'):
+#            raise 
+
         # replace forbidden chars in aiida dicts.
         if len(self.bigdftlogfile) > 0:
             logs = []

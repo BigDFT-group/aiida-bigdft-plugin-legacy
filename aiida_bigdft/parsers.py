@@ -11,6 +11,8 @@ from aiida.parsers.parser import Parser
 from aiida.plugins import CalculationFactory
 from aiida.plugins import DataFactory
 from aiida.common.exceptions import ValidationError
+import re
+import tempfile
 
 BigDFTCalculation = CalculationFactory('bigdft')
 BigDFTLogfile = DataFactory('bigdft_logfile')
@@ -36,6 +38,35 @@ class BigDFTParser(Parser):
         if not issubclass(node.process_class, BigDFTCalculation):
             raise exceptions.ParsingError("Can only parse BigDFTCalculation")
 
+    def parse_stderr(self, inputfile):
+        """Parse the stderr file to get commong errors, such as OOM or timeout.
+
+        :param i putfile: stderr file
+        :returns: exit code in case of an error, None otherwise
+        """
+        timeout_messages = {
+            'DUE TO TIME LIMIT',                                                # slurm
+            'exceeded hard wallclock time',                                     # UGE
+            'TERM_RUNLIMIT: job killed',                                        # LFS
+            'walltime .* exceeded limit'                                        # PBS/Torque
+        }
+
+        oom_messages = {
+            '[oO]ut [oO]f [mM]emory',
+            'oom-kill',                                                         # generic OOM messages
+            'Exceeded .* memory limit',                                         # slurm
+            'exceeds job hard limit .*mem.* of queue',                          # UGE
+            'TERM_MEMLIMIT: job killed after reaching LSF memory usage limit',  # LFS
+            'mem .* exceeded limit',                                            # PBS/Torque
+        }
+        for message in timeout_messages:
+            if re.search(message, inputfile):
+                return self.exit_codes.ERROR_OUT_OF_WALLTIME
+        for message in oom_messages:
+            if re.search(message, inputfile):
+                return self.exit_codes.ERROR_OUT_OF_MEMORY
+        return
+
     def parse(self, **kwargs):
         """
         Parse outputs, store results in database.
@@ -43,6 +74,18 @@ class BigDFTParser(Parser):
         :returns: an exit code, if parsing fails
         (or nothing if parsing succeeds)
         """
+
+        # Try to check if we have an error in stderr before attempting parsing.
+        error = ExitCode(0)
+
+        stderr = self.node.get_scheduler_stderr()
+        if stderr:
+            error = self.parse_stderr(stderr)
+            if error:
+                self.logger.error("Error in stderr: " + error.message)
+
+        # Still atempt to parse, even after one of these errors, as we may still have useful data.
+
         output_filename = self.node.get_option('output_filename')
         jobname = self.node.get_option('jobname')
         if jobname is not None:
@@ -66,12 +109,9 @@ class BigDFTParser(Parser):
         except ValidationError:
             self.logger.info("Impossible to store LogFile - ignoring '{}'".
                              format(output_filename))
+            if not error:  # if we already have OOW or OOM, failure here will be handled later
+                return self.exit_codes.ERROR_PARSING_FAILED
 
-#        with self.retrieved.open(output_filename, 'rb') as handle:
-#            output_node = SinglefileData(file=handle)
-#        output_dict_aiida=orm.Dict(dict=output_dict)
-#        output_dict_aiida.store()
-#        output_log_aiida=BigDFTLogfile(output)
         self.out('bigdft_logfile', output)
 
-        return ExitCode(0)
+        return error
