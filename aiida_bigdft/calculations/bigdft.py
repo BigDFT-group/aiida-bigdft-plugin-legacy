@@ -116,6 +116,8 @@ class BigDFTCalculation(CalcJob):
         if 'posinp' not in dico:
             posinp_filename = self.inputs.structurefile.value
             if self.inputs.structure is not None:
+                if self.inputs.structure.cell_angles != [90.0, 90.0, 90.0]:
+                    raise ValueError('non orthorhombic cells are not supported')
                 print("writing input posinp file")
                 posinp_string = self.inputs.structure._prepare_xyz()[0]
                 if "jobname" not in self.inputs.metadata.options:
