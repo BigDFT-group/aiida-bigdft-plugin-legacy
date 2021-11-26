@@ -144,11 +144,24 @@ class BigDFTLogfile(Data):
                         log.log['Timestamp of this run'].strftime("%Y-%m-%d %H:%M:%S.%f")
                 except KeyError:
                     pass
+                try:
+                    log.log['Status of the memory at finalization']['Timestamp of Profile initialization'] = \
+                        log.log['Status of the memory at finalization']['Timestamp of Profile initialization'].strftime("%Y-%m-%d %H:%M:%S.%f")
+                except KeyError:
+                    pass
                 logs.append(log.log)
             self.set_attribute('logfile', logs)
         else:
-            self.bigdftlogfile.log['Timestamp of this run'] = \
-                self.bigdftlogfile.log['Timestamp of this run'].strftime("%Y-%m-%d %H:%M:%S.%f")
+            try:
+                self.bigdftlogfile.log['Timestamp of this run'] = \
+                    self.bigdftlogfile.log['Timestamp of this run'].strftime("%Y-%m-%d %H:%M:%S.%f")
+            except KeyError:
+                pass
+            try:
+                self.bigdftlogfile.log['Status of the memory at finalization']['Timestamp of Profile initialization'] = \
+                    self.bigdftlogfile.log['Status of the memory at finalization']['Timestamp of Profile initialization'].strftime("%Y-%m-%d %H:%M:%S.%f")
+            except KeyError:
+                pass
             self.set_attribute('logfile', self.bigdftlogfile.log)
 
     def __str__(self):
