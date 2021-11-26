@@ -170,12 +170,17 @@ class BigDFTRelaxWorkChain(WorkChain):
 
             positions = content[0:forces_index]
             s._parse_xyz("".join(positions))
+            # cell size is at the second line in bigdft xyz, adjust from here if possible
             try:
-                s._adjust_default_cell(vacuum_addition=0.0,
-                                       pbc=self.inputs.structure.pbc)
+                line = content[1].split()
+                s.set_cell(((line[1], 0.0, 0.0), (0.0, line[2], 0.0), (0.0, 0.0, line[3])))
             except ValueError:
-                # we are probably on a plane, not a volume
-                pass
+                try:
+                    s._adjust_default_cell(vacuum_addition=0.0,
+                                           pbc=self.inputs.structure.pbc)
+                except ValueError:
+                    # we are probably on a plane, not a volume
+                    pass
         elif extension == "yaml":
             logfile = workchain.outputs.bigdft_logfile.logfile
             if(isinstance(logfile, list)):
