@@ -120,6 +120,13 @@ class BigDFTCalculation(CalcJob):
                     raise ValueError('non orthorhombic cells are not supported')
                 print("writing input posinp file")
                 posinp_string = self.inputs.structure._prepare_xyz()[0]
+                # set bcs at the correct format (periodic only?)
+                if self.inputs.structure.pbc == (True, True, True):
+                    filestring = posinp_string.split(b'\n')
+                    line = "periodic " + str(self.inputs.structure.cell_lengths[0]) + " " + str(self.inputs.structure.cell_lengths[1]) + " " + str(self.inputs.structure.cell_lengths[2])
+                    filestring[1] = line.encode()
+                    posinp_string = b'\n'.join(filestring)
+
                 if "jobname" not in self.inputs.metadata.options:
                     posinp_filename = self._POSINP_FILE_NAME
                 else:
