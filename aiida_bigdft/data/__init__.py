@@ -101,8 +101,8 @@ class BigDFTParameters(Data):
     def transform_to_orthorombic(dico):
         return InputGenerator.transform_to_orthorombic(dico)
 
-    def set_psp(name, psp):
-        return InputGenerator.set_psp(name, psp)
+    def set_psp(name, psp, kind="HGH"):
+        return InputGenerator.set_psp(name, psp, kind)
 
 
 class BigDFTLogfile(Data):

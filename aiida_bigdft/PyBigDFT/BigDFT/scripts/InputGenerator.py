@@ -70,12 +70,14 @@ mix:
             at["IGSpin"] = 1 - 2 * (i % 2)
     return var
 
-def set_psp(name, psp):
-        # Atoms
+def set_psp(name, psp, kind="HGH"):
     import os
-    pspfile = "psppar."+name
+    if kind == "HGH":
+        pspfile = "psppar." + name
+    elif kind == "json":
+        pspfile = name + ".json"
     dirname = os.path.dirname(__file__)
-    filename =  os.path.join(dirname, "psppar", pspfile)
+    filename = os.path.join(dirname, "psppar", pspfile)
     if not os.path.isfile(filename):
         safe_print("WARNING: Using default PSP for atom", filename, name)
     else:
